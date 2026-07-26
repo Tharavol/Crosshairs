@@ -69,3 +69,11 @@ Notes
 - Removed dead code left over from an earlier preview feature (`UpdatePreview` calls that referenced a function which no longer existed).
 - Added a `.luacheckrc` and cleaned up the addon so it lints clean with `luacheck`.
 
+### Version 1.2.1
+- Licensed under GPLv3.
+- The addon version now prints to chat on login and is shown in the top-right corner of the options panel.
+
+License
+-------
+This addon is licensed under the GNU General Public License v3.0 (GPLv3). See [LICENSE](LICENSE) for the full text.
+

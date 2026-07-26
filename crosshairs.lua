@@ -1,6 +1,12 @@
 -- crosshairs.lua
 -- Crosshairs addon: draws a centered cross and a cursor circle that scales while Alt is pressed.
 
+-- Version string, read from the .toc so it only needs to be updated in one place
+local function GetAddonVersion()
+    local getMeta = (C_AddOns and C_AddOns.GetAddOnMetadata) or GetAddOnMetadata
+    return (getMeta and getMeta("crosshairs", "Version")) or "?"
+end
+
 -- Saved variables defaults (won't overwrite user settings)
 CrosshairsDB = CrosshairsDB or {}
 local defaults = {
@@ -340,6 +346,7 @@ eventFrame:SetScript("OnEvent", function(self, event, arg1)
         end
         BuildCircleLines()
         ApplyCombatState()
+        print("Crosshairs v" .. GetAddonVersion() .. " loaded. Type /crosshairs options to configure.")
     else
         ApplyCombatState()
     end
@@ -454,6 +461,10 @@ do
     local title = panel:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
     title:SetPoint("TOPLEFT", 16, -16)
     title:SetText("Crosshairs")
+
+    local versionText = panel:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
+    versionText:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -16, -16)
+    versionText:SetText("v" .. GetAddonVersion())
 
     local subtitle = panel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
     subtitle:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -8)

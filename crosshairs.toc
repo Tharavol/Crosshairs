@@ -2,7 +2,8 @@
 ## Title: crosshairs
 ## Notes: Draws a simple crosshair at the center of the screen
 ## Author: Tharavol, Claude, GitHub Copilot
-## Version: 1.2.0
+## Version: 1.2.1
+## X-License: GPL-3.0
 ## SavedVariables: CrosshairsDB
 
 crosshairs.lua

@@ -2,6 +2,10 @@
 
 All notable changes to the Crosshairs addon are documented in this file.
 
+## [1.2.1]
+- Licensed under GPLv3 (see LICENSE).
+- The addon now prints its version at login and shows it in the top-right corner of the options panel.
+
 ## [1.2.0]
 **Feature summary:** a full graphical options panel, reachable the same way as other addons (e.g. AutoMailer), so settings no longer require slash commands.
 - Added an options panel under Game Menu (Esc) > Options > AddOns > Crosshairs:
