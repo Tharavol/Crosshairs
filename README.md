@@ -30,9 +30,6 @@ Commands
 - `/crosshairs set crossthickness <n>` - set cross thickness (px)
 - `/crosshairs off` - hide both the cross and circle until re-enabled
 - `/crosshairs on` - restore visibility based on current settings
-- `/crosshairs circletest` - show test circle at screen center
-- `/crosshairs test` - segment test circle
-- `/crosshairs diag` - diagnostic overlay (lines + dots)
 - `/crosshairs debug on|off` - show/hide cursor debug dot (enables detailed logs)
 - `/crosshairs options` - open the graphical options panel and show command help (alias: `/ch`)
 
@@ -72,6 +69,15 @@ Notes
 ### Version 1.2.1
 - Licensed under GPLv3.
 - The addon version now prints to chat on login and is shown in the top-right corner of the options panel.
+
+### Version 1.2.2
+- Split the addon into `Core.lua`, `Cross.lua`, `Circle.lua`, `Options.lua`, and `Slash.lua`, sharing state through an addon-namespace table.
+- Removed the dev-only `/crosshairs test`, `diag`, and `circletest` commands and their scaffolding.
+- Removed per-tick debug spam so debug mode is actually usable; it now logs only on setting changes.
+- Fixed the circle segment size being computed by two disagreeing formulas in different functions.
+- Lowered the "Segments" slider max from 720 to 256 and the default from 512 to 200.
+- Named the magic spell ID used for GCD tracking with an explanatory comment.
+- Added SPDX license headers to all source files.
 
 License
 -------

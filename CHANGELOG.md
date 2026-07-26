@@ -2,6 +2,15 @@
 
 All notable changes to the Crosshairs addon are documented in this file.
 
+## [1.2.2]
+- Split the addon into `Core.lua`, `Cross.lua`, `Circle.lua`, `Options.lua`, and `Slash.lua` (previously one 700+ line file), sharing state through an addon-namespace table instead of file-scope locals.
+- Removed the dev-only `/crosshairs test`, `diag`, and `circletest` commands and their scaffolding (test frames, forced-visibility hacks) — they were left over from building the circle renderer and had no use for end users.
+- Removed per-tick debug spam (cursor position and quadrant-sample prints firing ~33 times/second) that made debug mode unusable; debug mode now logs only on actual setting changes.
+- Fixed the circle segment size being computed by two different, disagreeing formulas in `BuildCircleLines` and `updateCirclePositions`; both now share one `GetSegmentSize` helper.
+- Lowered the "Segments" slider max from 720 to 256 and the default from 512 to 200 — each segment is its own texture redrawn every ~30ms, so the old max risked real frame cost for little visible smoothness gain.
+- Named the magic spell ID used for GCD tracking (`GCD_SPELL_ID = 61304`) with an explanatory comment.
+- Added SPDX license headers to all source files.
+
 ## [1.2.1]
 - Licensed under GPLv3 (see LICENSE).
 - The addon now prints its version at login and shows it in the top-right corner of the options panel.
