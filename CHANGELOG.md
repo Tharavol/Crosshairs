@@ -2,6 +2,15 @@
 
 All notable changes to the Crosshairs addon are documented in this file.
 
+## [1.2.3]
+
+Packaging and tooling only — no functional changes.
+
+- Renamed `crosshairs.toc` to `Crosshairs.toc` so it matches the addon folder name. WoW resolves this case-insensitively on Windows and macOS, but the packager and case-sensitive filesystems do not, so the mismatch was a latent packaging failure.
+- Releases are now built by [BigWigsMods/packager](https://github.com/BigWigsMods/packager), so the zip contains only what the addon needs — `.github/`, `.luacheckrc` and `.pkgmeta` no longer ship.
+- The version in the TOC now comes from the release tag instead of being maintained by hand, so it can no longer disagree with the release it was published under. Versions now carry a leading `v`.
+- Added a GitHub Actions workflow running luacheck on every push and pull request.
+
 ## [1.2.2]
 - Split the addon into `Core.lua`, `Cross.lua`, `Circle.lua`, `Options.lua`, and `Slash.lua` (previously one 700+ line file), sharing state through an addon-namespace table instead of file-scope locals.
 - Removed the dev-only `/crosshairs test`, `diag`, and `circletest` commands and their scaffolding (test frames, forced-visibility hacks) — they were left over from building the circle renderer and had no use for end users.
