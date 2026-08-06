@@ -86,24 +86,43 @@ ns.ApplyDefaults = ApplyDefaults
 ApplyDefaults()
 
 -- Debug cursor dot: shows a marker at the tracked cursor position when debug mode is enabled
+-- Not exported on `ns`: visibility is owned by ns.SetDebugMode below, and handing the
+-- frame out is what let callers Show() it directly. It keeps its global name so it can
+-- still be inspected in-game via /framestack.
 local debugDot = CreateFrame("Frame", "CrosshairsDebugDot", UIParent)
-ns.debugDot = debugDot
 debugDot:SetSize(8, 8)
 local ddTex = debugDot:CreateTexture(nil, "OVERLAY")
 ddTex:SetColorTexture(0, 1, 0, 1)
 ddTex:SetAllPoints(true)
 debugDot:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
 debugDot:Hide()
-debugDot:SetScript("OnUpdate", function(self)
+
+local function TrackCursor(self)
+    local x, y = GetCursorPosition()
+    local scale = UIParent:GetScale() or 1
+    self:SetPoint("CENTER", UIParent, "BOTTOMLEFT", x / scale, y / scale)
+end
+
+-- Attaches the tracking script only while debug mode is on, and is the single place that
+-- turns the setting into visible state -- the slash command, the options checkbox and
+-- login all route through here.
+--
+-- The previous version installed OnUpdate permanently and had it poll the flag to show or
+-- hide the frame, which cannot work: WoW does not run OnUpdate on a hidden frame, so once
+-- hidden the dot could never show itself again. It appeared at all only because the two
+-- toggles called Show() directly, which meant a saved `debugMode = true` was dropped on
+-- every /reload until you toggled it off and on again.
+function ns.SetDebugMode(enabled)
+    CrosshairsDB.debugMode = enabled and true or false
     if CrosshairsDB.debugMode then
-        local x, y = GetCursorPosition()
-        local scale = UIParent:GetScale() or 1
-        self:SetPoint("CENTER", UIParent, "BOTTOMLEFT", x / scale, y / scale)
-        self:Show()
+        debugDot:SetScript("OnUpdate", TrackCursor)
+        TrackCursor(debugDot) -- place it before the first tick so it doesn't flash at centre
+        debugDot:Show()
     else
-        self:Hide()
+        debugDot:SetScript("OnUpdate", nil)
+        debugDot:Hide()
     end
-end)
+end
 
 -- Visibility control based on combat state and settings
 function ns.ApplyCombatState()
@@ -151,6 +170,7 @@ eventFrame:SetScript("OnEvent", function(_, event, arg1)
         ApplyDefaults()
         if ns.BuildCircleLines then ns.BuildCircleLines() end
         ns.ApplyCombatState()
+        ns.SetDebugMode(CrosshairsDB.debugMode) -- restore the saved state across /reload
         print("Crosshairs " .. ns.GetAddonVersion() .. " loaded. Type /crosshairs options to configure.")
     else
         ns.ApplyCombatState()

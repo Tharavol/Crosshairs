@@ -98,10 +98,7 @@ SlashCmdList["CROSSHAIRS"] = function(msg)
     end
 
     if args[1] == "debug" and (args[2] == "on" or args[2] == "off") then
-        CrosshairsDB.debugMode = (args[2] == "on")
-        if ns.debugDot then
-            if CrosshairsDB.debugMode then ns.debugDot:Show() else ns.debugDot:Hide() end
-        end
+        ns.SetDebugMode(args[2] == "on")
         print("Crosshairs: debug mode set to", args[2])
         return
     end

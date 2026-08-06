@@ -97,11 +97,7 @@ AddSlider("Line thickness", "circleLineThickness", 1, function() ns.BuildCircleL
 AddHeading("Other")
 AddCheckbox("Debug mode",
     "Show a cursor-tracking debug dot and print diagnostic messages when settings change.",
-    "debugMode", function()
-    if ns.debugDot then
-        if CrosshairsDB.debugMode then ns.debugDot:Show() else ns.debugDot:Hide() end
-    end
-end)
+    "debugMode", function() ns.SetDebugMode(CrosshairsDB.debugMode) end)
 
 local resetButton = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
 resetButton:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", -8, -24)
