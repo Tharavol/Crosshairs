@@ -23,3 +23,9 @@ jobs:
 
       - name: Luacheck
         run: luacheck .
+
+      # Catches a .toc listing a file that doesn't exist, or that differs only in case.
+      # Both load silently in-game with no error, and the case variant only shows up on a
+      # case-sensitive filesystem -- which is what this runner is and a player's is not.
+      - name: Validate TOC
+        run: lua scripts/validate-toc.lua
