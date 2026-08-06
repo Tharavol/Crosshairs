@@ -5,7 +5,6 @@
 
 local _, ns = ...
 local defaults = ns.defaults
-local circleScale = ns.circleScale
 
 -- 61304 is a placeholder spell every class/spec can query; GetSpellCooldown on it reports
 -- the shared global cooldown rather than any particular ability's cooldown.
@@ -174,7 +173,7 @@ circleFrame:SetScript("OnUpdate", function(self, elapsed)
     updateTimer = 0
 
     local alt = IsAltKeyDown() and 1.8 or 1.0
-    local radius = (CrosshairsDB.circleBaseRadius or defaults.circleBaseRadius) * circleScale * alt
+    local radius = (CrosshairsDB.circleBaseRadius or defaults.circleBaseRadius) * alt
     local size = math.ceil(radius * 2 + 8)
     self:SetSize(size, size)
     updateCirclePositions(radius, GetCircleProgress())

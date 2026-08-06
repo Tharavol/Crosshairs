@@ -44,7 +44,11 @@ ns.defaults = {
     crossOutOfCombat = true,
     circleInCombat = false,
     circleOutOfCombat = true,
-    circleBaseRadius = 40,
+    -- 28, not 40: Circle.lua used to multiply this by a hidden 0.7 scale before drawing,
+    -- so the slider labelled "Base radius: 40" actually drew a 28px radius (#7). The
+    -- scale is gone; this is now the radius the slider says it is. Existing saved values
+    -- above the default see a one-time increase to match -- accepted rather than migrated.
+    circleBaseRadius = 28,
     circleSegments = 200, -- more => smoother; kept under the cap in ns.limits below
     circleLineThickness = 1,
     -- cross appearance defaults
@@ -78,9 +82,6 @@ function ns.ClampSetting(key, value)
     local clamped = math.floor(math.max(limit.min, math.min(limit.max, number)) + 0.5)
     return clamped, clamped ~= number
 end
-
--- scale applied to the base radius (30% smaller -> scale 0.7)
-ns.circleScale = 0.7
 
 -- Fills in any missing setting and pulls saved values back inside ns.limits. The clamp
 -- runs on load as well as on input: a profile saved before the setters were bounded can
