@@ -23,18 +23,27 @@ subtitle:SetText("Draws a centered crosshair and a cursor circle that expands wh
 
 local widgets = {}
 local anchor = subtitle
+local anchorIndent = 0
+
+-- `indent` is measured from the panel's content column (0 = flush with headings and
+-- checkboxes) rather than from the previous widget's own position, so a run of indented
+-- widgets -- the sliders -- can't accumulate offset down the page the way they used to
+-- when each one anchored 8px right of whatever it followed (#49).
+local function Place(widget, indent, gap)
+    widget:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", indent - anchorIndent, -gap)
+    anchor, anchorIndent = widget, indent
+end
 
 local function AddHeading(text)
     local fs = panel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-    fs:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", 0, -20)
+    Place(fs, 0, 20)
     fs:SetText(text)
-    anchor = fs
     return fs
 end
 
 local function AddCheckbox(label, tooltip, dbKey, onChange)
     local cb = CreateFrame("CheckButton", nil, panel, "InterfaceOptionsCheckButtonTemplate")
-    cb:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", 0, -8)
+    Place(cb, 0, 8)
     cb.Text:SetText(label)
     cb.tooltipText = tooltip
     cb:SetScript("OnClick", function(self)
@@ -44,7 +53,6 @@ local function AddCheckbox(label, tooltip, dbKey, onChange)
     table.insert(widgets, function()
         cb:SetChecked(CrosshairsDB[dbKey] and true or false)
     end)
-    anchor = cb
     return cb
 end
 
@@ -54,7 +62,7 @@ local function AddSlider(label, dbKey, step, onChange)
     local minV, maxV = ns.limits[dbKey].min, ns.limits[dbKey].max
     local name = "CrosshairsOption" .. dbKey .. "Slider"
     local slider = CreateFrame("Slider", name, panel, "OptionsSliderTemplate")
-    slider:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", 8, -24)
+    Place(slider, 8, 24)
     slider:SetWidth(260)
     slider:SetMinMaxValues(minV, maxV)
     slider:SetValueStep(step)
@@ -76,7 +84,6 @@ local function AddSlider(label, dbKey, step, onChange)
         slider:SetValue(value)
         UpdateLabel(value)
     end)
-    anchor = slider
     return slider
 end
 
@@ -100,7 +107,7 @@ AddCheckbox("Debug mode",
     "debugMode", function() ns.SetDebugMode(CrosshairsDB.debugMode) end)
 
 local resetButton = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
-resetButton:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", -8, -24)
+Place(resetButton, 0, 24)
 resetButton:SetSize(140, 22)
 resetButton:SetText("Reset to Defaults")
 resetButton:SetScript("OnClick", function()
