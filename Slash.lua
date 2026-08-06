@@ -4,16 +4,37 @@
 
 local _, ns = ...
 
+-- "8-256" for a setting, so the usage text and the clamp message can never quote a
+-- range the code doesn't actually enforce.
+local function Range(key)
+    local limit = ns.limits[key]
+    return limit.min .. "-" .. limit.max
+end
+
+-- Applies a clamped numeric setting and says so when the value was adjusted, since
+-- silently storing something other than what was typed reads as the command failing.
+local function SetNumeric(key, input, onChange)
+    local value, clamped = ns.ClampSetting(key, input)
+    CrosshairsDB[key] = value
+    if onChange then onChange() end
+    if clamped then
+        print("Crosshairs: " .. key .. " set to " .. value .. " (clamped to " .. Range(key) .. ")")
+    else
+        print("Crosshairs: " .. key .. " set to " .. value)
+    end
+end
+
 local function PrintUsage()
     print("Crosshairs commands (alias: /ch):")
     print("/crosshairs options - open the graphical options panel")
     print("/crosshairs status - show current settings")
     print("/crosshairs set <cross|circle> <in|out> <on|off> - set visibility in/out of combat")
-    print("/crosshairs set segments <n> - set circle segment count (more => smoother)")
-    print("/crosshairs set thickness <n> - set segment thickness (px)")
-    print("/crosshairs set radius <n> - set base radius (px)")
-    print("/crosshairs set crosssize <n> - set cross leg length (px)")
-    print("/crosshairs set crossthickness <n> - set cross thickness (px)")
+    print("/crosshairs set segments <n> - set circle segment count, " .. Range("circleSegments") ..
+        " (more => smoother)")
+    print("/crosshairs set thickness <n> - set segment thickness in px, " .. Range("circleLineThickness"))
+    print("/crosshairs set radius <n> - set base radius in px, " .. Range("circleBaseRadius"))
+    print("/crosshairs set crosssize <n> - set cross leg length in px, " .. Range("crossSize"))
+    print("/crosshairs set crossthickness <n> - set cross thickness in px, " .. Range("crossThickness"))
     print("/crosshairs off - hide both the cross and circle until re-enabled")
     print("/crosshairs on - restore visibility based on current settings")
     print("/crosshairs debug on|off - show/hide cursor debug dot and diagnostic messages")
@@ -106,36 +127,28 @@ SlashCmdList["CROSSHAIRS"] = function(msg)
     end
 
     if args[1] == "set" and args[2] == "segments" and tonumber(args[3]) then
-        CrosshairsDB.circleSegments = math.max(3, tonumber(args[3]))
-        ns.BuildCircleLines()
-        print("Crosshairs: circleSegments set to", CrosshairsDB.circleSegments)
+        SetNumeric("circleSegments", args[3], ns.BuildCircleLines)
         return
     end
 
     if args[1] == "set" and args[2] == "thickness" and tonumber(args[3]) then
-        CrosshairsDB.circleLineThickness = math.max(1, tonumber(args[3]))
-        ns.BuildCircleLines()
-        print("Crosshairs: circleLineThickness set to", CrosshairsDB.circleLineThickness)
+        SetNumeric("circleLineThickness", args[3], ns.BuildCircleLines)
         return
     end
 
     if args[1] == "set" and args[2] == "radius" and tonumber(args[3]) then
-        CrosshairsDB.circleBaseRadius = math.max(4, tonumber(args[3]))
-        print("Crosshairs: circleBaseRadius set to", CrosshairsDB.circleBaseRadius)
+        -- No rebuild: the radius is read straight from the DB by the circle's OnUpdate.
+        SetNumeric("circleBaseRadius", args[3])
         return
     end
 
     if args[1] == "set" and args[2] == "crosssize" and tonumber(args[3]) then
-        CrosshairsDB.crossSize = math.max(4, tonumber(args[3]))
-        ns.ApplyCrossSettings()
-        print("Crosshairs: crossSize set to", CrosshairsDB.crossSize)
+        SetNumeric("crossSize", args[3], ns.ApplyCrossSettings)
         return
     end
 
     if args[1] == "set" and args[2] == "crossthickness" and tonumber(args[3]) then
-        CrosshairsDB.crossThickness = math.max(1, tonumber(args[3]))
-        ns.ApplyCrossSettings()
-        print("Crosshairs: crossThickness set to", CrosshairsDB.crossThickness)
+        SetNumeric("crossThickness", args[3], ns.ApplyCrossSettings)
         return
     end
 

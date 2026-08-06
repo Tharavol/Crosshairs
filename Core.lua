@@ -32,7 +32,7 @@ ns.defaults = {
     circleInCombat = false,
     circleOutOfCombat = true,
     circleBaseRadius = 40,
-    circleSegments = 200, -- more => smoother; kept well under the slider cap (see Options.lua)
+    circleSegments = 200, -- more => smoother; kept under the cap in ns.limits below
     circleLineThickness = 1,
     -- cross appearance defaults
     crossSize = 50,       -- leg length in pixels
@@ -40,11 +40,50 @@ ns.defaults = {
 }
 local defaults = ns.defaults
 
+-- Bounds for every numeric setting, in one place so the options sliders and the slash
+-- setters cannot disagree about them. circleSegments matters most: each segment is its
+-- own texture redrawn every ~30ms, so an unclamped `/ch set segments 100000` hangs the
+-- client, and because the value is saved it hangs again on every subsequent login. 256
+-- already looks smooth, which is what makes it a cheap cap to accept.
+ns.limits = {
+    circleSegments      = { min = 8, max = 256 },
+    circleBaseRadius    = { min = 4, max = 150 },
+    circleLineThickness = { min = 1, max = 20 },
+    crossSize           = { min = 4, max = 200 },
+    crossThickness      = { min = 1, max = 30 },
+}
+
+-- Clamps a value into the range registered for `key` and rounds it to a whole number,
+-- matching the step-1 sliders. Returns the usable number plus whether it differs from
+-- what was asked for, so callers can tell the user their input was adjusted.
+-- Returns nil for input that isn't a number at all.
+function ns.ClampSetting(key, value)
+    local number = tonumber(value)
+    if not number then return nil end
+    local limit = ns.limits[key]
+    if not limit then return number, false end
+    local clamped = math.floor(math.max(limit.min, math.min(limit.max, number)) + 0.5)
+    return clamped, clamped ~= number
+end
+
 -- scale applied to the base radius (30% smaller -> scale 0.7)
 ns.circleScale = 0.7
-for k, v in pairs(defaults) do
-    if CrosshairsDB[k] == nil then CrosshairsDB[k] = v end
+
+-- Fills in any missing setting and pulls saved values back inside ns.limits. The clamp
+-- runs on load as well as on input: a profile saved before the setters were bounded can
+-- still hold a value that would hang the client, and it has to be repaired before
+-- BuildCircleLines reads it.
+local function ApplyDefaults()
+    for k, v in pairs(defaults) do
+        if CrosshairsDB[k] == nil then CrosshairsDB[k] = v end
+    end
+    for k in pairs(ns.limits) do
+        CrosshairsDB[k] = ns.ClampSetting(k, CrosshairsDB[k]) or defaults[k]
+    end
 end
+ns.ApplyDefaults = ApplyDefaults
+
+ApplyDefaults()
 
 -- Debug cursor dot: shows a marker at the tracked cursor position when debug mode is enabled
 local debugDot = CreateFrame("Frame", "CrosshairsDebugDot", UIParent)
@@ -103,17 +142,13 @@ eventFrame:RegisterEvent("PLAYER_REGEN_ENABLED")
 eventFrame:SetScript("OnEvent", function(_, event, arg1)
     if event == "ADDON_LOADED" then
         if (tostring(arg1) or ""):lower() ~= ADDON_NAME:lower() then return end
-        for k, v in pairs(defaults) do
-            if CrosshairsDB[k] == nil then CrosshairsDB[k] = v end
-        end
+        ApplyDefaults()
         if ns.BuildCircleLines then ns.BuildCircleLines() end
         if ns.ApplyCrossSettings then ns.ApplyCrossSettings() end
         ns.ApplyCombatState()
         if ns.optionsPanel and ns.optionsPanel.RefreshWidgets then ns.optionsPanel.RefreshWidgets() end
     elseif event == "PLAYER_LOGIN" then
-        for k, v in pairs(defaults) do
-            if CrosshairsDB[k] == nil then CrosshairsDB[k] = v end
-        end
+        ApplyDefaults()
         if ns.BuildCircleLines then ns.BuildCircleLines() end
         ns.ApplyCombatState()
         print("Crosshairs " .. ns.GetAddonVersion() .. " loaded. Type /crosshairs options to configure.")
