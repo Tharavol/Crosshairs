@@ -23,6 +23,23 @@ return function(stub, T)
         T.AssertEqual(visible, addon.env.CrosshairsDB.circleSegments)
     end)
 
+    T.Test("a steady-state tick re-anchors nothing (#10)", function()
+        local addon = stub.LoadAddon(".", "Crosshairs.toc")
+        local eventFrame = stub.FindFrame(addon.frames, "ADDON_LOADED")
+        eventFrame._scripts.OnEvent(eventFrame, "ADDON_LOADED", "Crosshairs")
+
+        local circleFrame = addon.ns.circleFrame
+        circleFrame._scripts.OnUpdate(circleFrame, 1.0) -- first tick: radius is new, must anchor
+
+        local firstSegment = circleFrame._children[1]
+        local callsAfterFirstTick = firstSegment._setPointCalls
+
+        circleFrame._scripts.OnUpdate(circleFrame, 1.0) -- same radius: should not re-anchor
+
+        T.AssertEqual(firstSegment._setPointCalls, callsAfterFirstTick,
+            "SetPoint was called again on an unchanged-radius tick")
+    end)
+
     T.Test("a hostile saved segment count is clamped on load", function()
         local addon = stub.LoadAddon(".", "Crosshairs.toc")
         addon.env.CrosshairsDB = { circleSegments = 999999 }

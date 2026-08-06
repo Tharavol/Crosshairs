@@ -19,9 +19,16 @@ ns.circleFrame = circleFrame
 
 local circleTextures = {}
 
+-- cos/sin per segment, indexed the same as circleTextures. Segment angle only depends on
+-- the segment count, so this is computed once on rebuild instead of every tick.
+local segmentAngles = {}
+
+-- The radius/count updateCirclePositions last anchored textures at, so a tick where
+-- neither changed can skip SetPoint entirely -- the frame itself still tracks the cursor
+-- every frame (see OnUpdate below), so segments don't need re-anchoring to follow it.
+local lastGeometryN, lastGeometryRadius
+
 -- Segments are small square textures; size scales with the configured line thickness.
--- Shared by BuildCircleLines (initial/settings-change build) and updateCirclePositions
--- (per-tick redraw) so the two never disagree on how big a segment should be.
 local function GetSegmentSize(thickness)
     return math.max(2, math.min(10, math.floor(math.max(1, thickness) * 2)))
 end
@@ -34,22 +41,38 @@ local function GetSegmentCount()
     return ns.ClampSetting("circleSegments", CrosshairsDB.circleSegments) or defaults.circleSegments
 end
 
+-- Shared by BuildCircleLines and updateCirclePositions so the two can't drift the way the
+-- segment-size formulas did in 1.2.2 -- there is exactly one place a segment texture gets
+-- created.
+local function AcquireTexture(i)
+    local tex = circleTextures[i]
+    if not tex then
+        tex = circleFrame:CreateTexture(nil, "OVERLAY")
+        if tex.SetDrawLayer then tex:SetDrawLayer("ARTWORK", 0) end
+        circleTextures[i] = tex
+    end
+    return tex
+end
+
 local function BuildCircleLines()
     local n = GetSegmentCount()
     local thickness = tonumber(CrosshairsDB.circleLineThickness or defaults.circleLineThickness)
     local segSize = GetSegmentSize(thickness)
     for i = 1, n do
-        if not circleTextures[i] then
-            circleTextures[i] = circleFrame:CreateTexture(nil, "OVERLAY")
-            circleTextures[i]:SetColorTexture(0.4, 0.6, 1, 0.95)
-            if circleTextures[i].SetDrawLayer then circleTextures[i]:SetDrawLayer("ARTWORK", 0) end
-        end
-        circleTextures[i]:SetSize(segSize, segSize)
-        circleTextures[i]:Show()
+        local tex = AcquireTexture(i)
+        tex:SetSize(segSize, segSize)
+        -- Colour is set once here; only alpha varies per tick, in updateCirclePositions.
+        tex:SetColorTexture(0.6, 0.8, 1, 1)
+        tex:Show()
+        local angle = (math.pi / 2) - (i - 1) * (2 * math.pi / n)
+        segmentAngles[i] = { cos = math.cos(angle), sin = math.sin(angle) }
     end
     for i = n + 1, #circleTextures do
         if circleTextures[i] then circleTextures[i]:Hide() end
     end
+    -- Geometry just changed under whatever radius the next tick reads; force it to
+    -- re-anchor every segment instead of trusting a stale lastGeometryRadius match.
+    lastGeometryN, lastGeometryRadius = nil, nil
     if CrosshairsDB.debugMode then
         ns.Print("circle rebuilt with", n, "segments, segment size", segSize)
     end
@@ -101,26 +124,25 @@ local function GetCircleProgress()
     return GetActiveCastFraction() or GetGCDFraction() or 0
 end
 
+-- Runs every throttled tick: geometry (SetPoint) only when radius or segment count
+-- changed since last time, alpha (SetAlpha, not SetColorTexture -- colour is fixed at
+-- build time) always, since progress can move every tick during a cast.
 local function updateCirclePositions(radius, progress)
     local n = GetSegmentCount()
-    local thickness = tonumber(CrosshairsDB.circleLineThickness or defaults.circleLineThickness)
-    local segSize = GetSegmentSize(thickness)
     local minAlpha = 0.08
     local maxAlpha = 1.00
     local fadeRange = math.min(10 / n, 0.35)
 
+    local geometryChanged = n ~= lastGeometryN or radius ~= lastGeometryRadius
+    lastGeometryN, lastGeometryRadius = n, radius
+
     for i = 1, n do
         local tex = circleTextures[i]
-        if not tex then
-            tex = circleFrame:CreateTexture(nil, "OVERLAY")
-            if tex.SetDrawLayer then tex:SetDrawLayer("ARTWORK", 0) end
-            tex:Show()
-            circleTextures[i] = tex
-        end
 
-        tex:SetSize(segSize, segSize)
-        local angle = (math.pi / 2) - (i - 1) * (2 * math.pi / n)
-        tex:SetPoint("CENTER", circleFrame, "CENTER", math.cos(angle) * radius, math.sin(angle) * radius)
+        if geometryChanged then
+            local a = segmentAngles[i]
+            tex:SetPoint("CENTER", circleFrame, "CENTER", a.cos * radius, a.sin * radius)
+        end
 
         local segmentPos = (i - 1) / n
         local alpha = minAlpha
@@ -133,19 +155,23 @@ local function updateCirclePositions(radius, progress)
                 alpha = minAlpha + (maxAlpha - minAlpha) * (1 - (segmentPos - progress) / fadeRange)
             end
         end
-        tex:SetColorTexture(0.6, 0.8, 1, alpha)
+        tex:SetAlpha(alpha)
     end
 end
 
+-- Cursor tracking (one SetPoint on the frame) runs every frame -- it used to share the
+-- 30ms throttle below, which is why the circle visibly trailed the hardware cursor.
+-- Segment appearance work stays throttled, since redrawing 200+ segments doesn't need
+-- to happen faster than ~33x/sec.
 local updateTimer = 0
 circleFrame:SetScript("OnUpdate", function(self, elapsed)
-    updateTimer = updateTimer + elapsed
-    if updateTimer < 0.03 then return end
-    updateTimer = 0
-
     local x, y = GetCursorPosition()
     local scale = UIParent:GetScale() or 1
     self:SetPoint("CENTER", UIParent, "BOTTOMLEFT", x / scale, y / scale)
+
+    updateTimer = updateTimer + elapsed
+    if updateTimer < 0.03 then return end
+    updateTimer = 0
 
     local alt = IsAltKeyDown() and 1.8 or 1.0
     local radius = (CrosshairsDB.circleBaseRadius or defaults.circleBaseRadius) * circleScale * alt

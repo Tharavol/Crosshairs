@@ -17,7 +17,10 @@ local MakeWidget
 MakeWidget = function(kind, name)
     local w = { kind = kind, name = name, _children = {} }
 
-    function w:SetPoint(...) self._point = { ... } end
+    function w:SetPoint(...)
+        self._point = { ... }
+        self._setPointCalls = (self._setPointCalls or 0) + 1
+    end
     function w:SetSize(width, height) self._width, self._height = width, height end
     function w:SetWidth(width) self._width = width end
     function w:SetFrameStrata(strata) self._strata = strata end
@@ -35,6 +38,8 @@ MakeWidget = function(kind, name)
     function w:Hide() self._shown = false end
     function w:IsShown() return self._shown and true or false end
     function w:SetColorTexture(r, g, b, a) self._color = { r, g, b, a } end
+    function w:SetAlpha(alpha) self._alpha = alpha end
+    function w:GetAlpha() return self._alpha end
     function w:SetAllPoints() end
     function w:SetDrawLayer() end
     function w:SetJustifyH() end
