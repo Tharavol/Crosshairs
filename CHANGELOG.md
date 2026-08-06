@@ -2,7 +2,18 @@
 
 All notable changes to the Crosshairs addon are documented in this file.
 
-## [1.3.0]
+## [1.4.0]
+
+Appearance and docs. The one group of changes since 1.2.4 that changes what existing
+users actually see.
+
+- Fixed the "Base radius" slider drawing 0.7x the value it displayed — a hidden scale factor meant a slider labelled "40" actually drew a 28px circle. Folded the factor into the default and deleted it; the slider now means what it says. Anyone with a saved non-default radius sees a one-time increase to match (accepted rather than migrated — not worth a SavedVariables version bump for a cosmetic value).
+- Added colour swatches to the options panel for cross and circle colour (`ColorPickerFrame`-backed, stored as `{r,g,b,a}`), and raised the cross to the circle's strata (`MEDIUM`) so ordinary UI — action bars, a centred nameplate — can no longer occlude it entirely. Dark red over a dark dungeon floor was close to invisible before this.
+- Fixed the options panel's widgets drifting up to 40px right down the page — each slider anchored 8px right of whatever it followed, and the offset compounded through the chain. Indentation is now measured from the panel's content column instead of the previous widget.
+- Modernised the options panel's checkbox and slider templates (`UICheckButtonTemplate`, `UISliderTemplateWithLabels`), verified against several currently-maintained addons' actual field usage rather than guessed. Falls back to the previous templates if a modern one fails to resolve on a given client, so a bad guess degrades instead of breaking the panel.
+- Trimmed the README's Notes section (a duplicate, less-complete copy of this changelog) down to a link here.
+
+
 
 Structural work. No intended change in user-facing behaviour, except the circle's
 per-tick rendering path (#10), which changes how the circle is drawn but not what it
