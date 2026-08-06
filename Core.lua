@@ -83,8 +83,6 @@ local function ApplyDefaults()
 end
 ns.ApplyDefaults = ApplyDefaults
 
-ApplyDefaults()
-
 -- Debug cursor dot: shows a marker at the tracked cursor position when debug mode is enabled
 -- Not exported on `ns`: visibility is owned by ns.SetDebugMode below, and handing the
 -- frame out is what let callers Show() it directly. It keeps its global name so it can
@@ -167,7 +165,6 @@ eventFrame:SetScript("OnEvent", function(_, event, arg1)
         ns.ApplyCombatState()
         if ns.optionsPanel and ns.optionsPanel.RefreshWidgets then ns.optionsPanel.RefreshWidgets() end
     elseif event == "PLAYER_LOGIN" then
-        ApplyDefaults()
         if ns.BuildCircleLines then ns.BuildCircleLines() end
         ns.ApplyCombatState()
         ns.SetDebugMode(CrosshairsDB.debugMode) -- restore the saved state across /reload

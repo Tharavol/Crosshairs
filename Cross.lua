@@ -32,6 +32,3 @@ local function ApplyCrossSettings()
     end
 end
 ns.ApplyCrossSettings = ApplyCrossSettings
-
--- Apply immediately so the cross uses stored values on load, without waiting for PLAYER_LOGIN
-pcall(ApplyCrossSettings)

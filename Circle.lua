@@ -153,6 +153,3 @@ circleFrame:SetScript("OnUpdate", function(self, elapsed)
     self:SetSize(size, size)
     updateCirclePositions(radius, GetCircleProgress())
 end)
-
--- Build immediately so the circle uses stored values on load, without waiting for PLAYER_LOGIN
-pcall(BuildCircleLines)
