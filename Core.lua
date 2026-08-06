@@ -7,9 +7,21 @@
 local ADDON_NAME, ns = ...
 ns.ADDON_NAME = ADDON_NAME
 
+-- Returns a display-ready version string with exactly one leading "v".
+-- The packager substitutes `@project-version@` in the TOC with the release tag, which
+-- already carries a "v" (e.g. "v1.2.4"), so callers must not prefix one themselves --
+-- that is how "Crosshairs vv1.2.3 loaded" reached the login message. Running from a git
+-- clone leaves the token unsubstituted; report that as "dev" rather than printing it raw.
 function ns.GetAddonVersion()
     local getMeta = (C_AddOns and C_AddOns.GetAddOnMetadata) or GetAddOnMetadata
-    return (getMeta and getMeta(ADDON_NAME, "Version")) or "?"
+    local version = getMeta and getMeta(ADDON_NAME, "Version")
+    if type(version) ~= "string" or version == "" or version:match("^@.*@$") then
+        return "dev"
+    end
+    if not version:match("^[vV]") then
+        version = "v" .. version
+    end
+    return version
 end
 
 -- Saved variables defaults (won't overwrite user settings)
@@ -104,7 +116,7 @@ eventFrame:SetScript("OnEvent", function(_, event, arg1)
         end
         if ns.BuildCircleLines then ns.BuildCircleLines() end
         ns.ApplyCombatState()
-        print("Crosshairs v" .. ns.GetAddonVersion() .. " loaded. Type /crosshairs options to configure.")
+        print("Crosshairs " .. ns.GetAddonVersion() .. " loaded. Type /crosshairs options to configure.")
     else
         ns.ApplyCombatState()
     end

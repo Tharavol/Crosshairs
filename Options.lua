@@ -13,7 +13,7 @@ title:SetText("Crosshairs")
 
 local versionText = panel:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
 versionText:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -16, -16)
-versionText:SetText("v" .. ns.GetAddonVersion())
+versionText:SetText(ns.GetAddonVersion())
 
 local subtitle = panel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
 subtitle:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -8)
