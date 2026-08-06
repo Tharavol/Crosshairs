@@ -29,3 +29,8 @@ jobs:
       # case-sensitive filesystem -- which is what this runner is and a player's is not.
       - name: Validate TOC
         run: lua scripts/validate-toc.lua
+
+      # Runs the addon against a stubbed WoW API. luacheck catches unknown globals and
+      # unused locals but not runtime shape errors -- this catches those instead.
+      - name: Run tests
+        run: lua tests/run_tests.lua
