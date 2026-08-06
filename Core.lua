@@ -7,6 +7,19 @@
 local ADDON_NAME, ns = ...
 ns.ADDON_NAME = ADDON_NAME
 
+-- Chat-output helper: every print() site retyped its own "Crosshairs: " prefix, and some
+-- (status) had none at all. Joins arguments the same way print() does, so callers convert
+-- by swapping the function name, and gives the addon's output a single, coloured, greppable
+-- source marker in a busy chat frame.
+local PREFIX = "|cff6699ffCrosshairs|r: "
+function ns.Print(...)
+    local parts = {}
+    for i = 1, select("#", ...) do
+        parts[i] = tostring(select(i, ...))
+    end
+    DEFAULT_CHAT_FRAME:AddMessage(PREFIX .. table.concat(parts, " "))
+end
+
 -- Returns a display-ready version string with exactly one leading "v".
 -- The packager substitutes `@project-version@` in the TOC with the release tag, which
 -- already carries a "v" (e.g. "v1.2.4"), so callers must not prefix one themselves --
@@ -168,7 +181,7 @@ eventFrame:SetScript("OnEvent", function(_, event, arg1)
         if ns.BuildCircleLines then ns.BuildCircleLines() end
         ns.ApplyCombatState()
         ns.SetDebugMode(CrosshairsDB.debugMode) -- restore the saved state across /reload
-        print("Crosshairs " .. ns.GetAddonVersion() .. " loaded. Type /crosshairs options to configure.")
+        ns.Print(ns.GetAddonVersion() .. " loaded. Type /crosshairs options to configure.")
     else
         ns.ApplyCombatState()
     end

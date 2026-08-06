@@ -51,7 +51,7 @@ local function BuildCircleLines()
         if circleTextures[i] then circleTextures[i]:Hide() end
     end
     if CrosshairsDB.debugMode then
-        print("Crosshairs: circle rebuilt with", n, "segments, segment size", segSize)
+        ns.Print("circle rebuilt with", n, "segments, segment size", segSize)
     end
 end
 ns.BuildCircleLines = BuildCircleLines

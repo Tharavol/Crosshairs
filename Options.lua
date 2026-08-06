@@ -109,7 +109,7 @@ resetButton:SetScript("OnClick", function()
     ns.BuildCircleLines()
     ns.ApplyCrossSettings()
     ns.ApplyCombatState()
-    print("Crosshairs: settings reset to defaults")
+    ns.Print("settings reset to defaults")
 end)
 
 function panel.RefreshWidgets()

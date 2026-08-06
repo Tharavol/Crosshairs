@@ -25,7 +25,7 @@ read_globals = {
     "C_AddOns", "C_Spell",
 
     -- Frame / UI globals
-    "CreateFrame", "UIParent", "GetCursorPosition",
+    "CreateFrame", "UIParent", "GetCursorPosition", "DEFAULT_CHAT_FRAME",
 
     -- Settings API (Settings is retail; the InterfaceOptions_* pair is the
     -- pre-10.0 fallback the addon still branches on)
