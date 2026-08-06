@@ -23,11 +23,13 @@ Commands
 - `/crosshairs status` - show current settings
 - `/crosshairs set <cross|circle> <in|out> <on|off>` - enable/disable the cross or circle while in or out of combat
   - Example: `/crosshairs set circle in on` (enable circle while in combat)
-- `/crosshairs set segments <n>` - set circle segment count (more => smoother)
-- `/crosshairs set thickness <n>` - set segment thickness (px)
-- `/crosshairs set radius <n>` - set base radius (px)
-- `/crosshairs set crosssize <n>` - set cross leg length (px)
-- `/crosshairs set crossthickness <n>` - set cross thickness (px)
+- `/crosshairs set segments <n>` - set circle segment count, 8-256 (more => smoother)
+- `/crosshairs set thickness <n>` - set segment thickness in px, 1-20
+- `/crosshairs set radius <n>` - set base radius in px, 4-150
+- `/crosshairs set crosssize <n>` - set cross leg length in px, 4-200
+- `/crosshairs set crossthickness <n>` - set cross thickness in px, 1-30
+
+Numeric values are clamped to the ranges above and rounded to whole numbers, matching the options sliders; the command tells you when it adjusts a value.
 - `/crosshairs off` - hide both the cross and circle until re-enabled
 - `/crosshairs on` - restore visibility based on current settings
 - `/crosshairs debug on|off` - show/hide cursor debug dot (enables detailed logs)
@@ -78,6 +80,19 @@ Notes
 - Lowered the "Segments" slider max from 720 to 256 and the default from 512 to 200.
 - Named the magic spell ID used for GCD tracking with an explanatory comment.
 - Added SPDX license headers to all source files.
+
+### Version 1.2.4
+- The cursor circle now actually tracks the global cooldown; it previously brightened only during a real cast, because the cooldown API had changed shape and the call was failing silently.
+- Debug mode now survives a `/reload` instead of needing to be toggled off and on again.
+- Numeric slash setters are clamped to the same ranges as the options sliders. `/ch set segments 100000` previously hung the client and, since the value was saved, hung it again on the next login; an out-of-range setting saved by an older version is now repaired on load.
+- The login message no longer prints a doubled `v` (`vv1.2.3`).
+- Corrected the addon title shown in the AddOns list, the notes text, and the install path in this README.
+- Added a CI check that the TOC lists only files that exist, with matching case.
+
+Development
+-----------
+- `luacheck .` lints the addon.
+- `lua scripts/validate-toc.lua` runs the same TOC check CI does, from the repository root.
 
 License
 -------

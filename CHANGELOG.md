@@ -2,6 +2,19 @@
 
 All notable changes to the Crosshairs addon are documented in this file.
 
+## [1.2.4]
+
+Correctness fixes. No restructuring and no intended change to how anything looks.
+
+- Fixed the cursor circle never tracking the global cooldown. `GetGCDFraction` used the pre-11.0 `GetSpellCooldown` signature, but modern retail returns a single info table, so the function returned `nil` on every call — silently, with no Lua error. The circle brightened only during an actual cast. It now branches on `C_Spell.GetSpellCooldown` and falls back to the old tuple form.
+- Fixed debug mode being lost on `/reload`. The debug dot's `OnUpdate` polled the setting to show or hide itself, but WoW doesn't run `OnUpdate` on hidden frames, so it could never un-hide itself; it only ever appeared because the toggles called `Show()` directly. The script is now attached and cleared on toggle, and the saved state is applied at `PLAYER_LOGIN`.
+- Fixed slash setters accepting unbounded values. `/ch set segments 100000` created 100,000 textures and hung the client, and because the value was saved it hung again on the next login. Ranges now live in one table in `Core.lua` that both the sliders and the slash setters read; the setters clamp, round to whole numbers, and report when they adjust a value. Settings already saved out of range are pulled back in on load, so an affected profile repairs itself.
+- Fixed the login message reading `Crosshairs vv1.2.3 loaded` — release tags already carry a leading `v`, and both display sites prepended a second one. An unsubstituted `@project-version@`, which is what a git clone sees, now reports as `dev`.
+- Fixed `## Title` displaying as lowercase `crosshairs` in the in-game AddOns list, and reworded `## Notes`, which described only the crosshair and not the cursor circle.
+- Fixed the README documenting the lowercase `AddOns\crosshairs` install path — the exact mismatch v1.2.3 existed to correct.
+- Removed `CF_API_KEY` from the release workflow. It required an `## X-Curse-Project-ID` that was never added, so the path it documented could not work.
+- Added a CI check that validates the TOC: every listed file exists with matching case, `## Interface` is a well-formed 5- or 6-digit number, `## Version` is present, and the TOC basename matches `package-as` in `.pkgmeta`.
+
 ## [1.2.3]
 
 Packaging and tooling only — no functional changes.

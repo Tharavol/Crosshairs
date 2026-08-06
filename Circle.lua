@@ -26,8 +26,16 @@ local function GetSegmentSize(thickness)
     return math.max(2, math.min(10, math.floor(math.max(1, thickness) * 2)))
 end
 
+-- Defers to ns.limits rather than carrying its own floor, so this file can't disagree
+-- with the sliders and slash setters about how few segments are allowed. The DB is
+-- already clamped on load and on every change, so this only bites if something writes
+-- CrosshairsDB directly.
+local function GetSegmentCount()
+    return ns.ClampSetting("circleSegments", CrosshairsDB.circleSegments) or defaults.circleSegments
+end
+
 local function BuildCircleLines()
-    local n = math.max(3, tonumber(CrosshairsDB.circleSegments or defaults.circleSegments))
+    local n = GetSegmentCount()
     local thickness = tonumber(CrosshairsDB.circleLineThickness or defaults.circleLineThickness)
     local segSize = GetSegmentSize(thickness)
     for i = 1, n do
@@ -94,7 +102,7 @@ local function GetCircleProgress()
 end
 
 local function updateCirclePositions(radius, progress)
-    local n = math.max(3, tonumber(CrosshairsDB.circleSegments or defaults.circleSegments))
+    local n = GetSegmentCount()
     local thickness = tonumber(CrosshairsDB.circleLineThickness or defaults.circleLineThickness)
     local segSize = GetSegmentSize(thickness)
     local minAlpha = 0.08
