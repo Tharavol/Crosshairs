@@ -2,6 +2,18 @@
 
 All notable changes to the Crosshairs addon are documented in this file.
 
+## [1.3.0]
+
+Structural work. No intended change in user-facing behaviour, except the circle's
+per-tick rendering path (#10), which changes how the circle is drawn but not what it
+looks like.
+
+- Fixed slash dispatch reporting `unknown setting: segments` for `/ch set segments <n>` followed by a trailing word (e.g. `/ch set segments 200 please`) — the generic 4-argument visibility-toggle branch was checked before the numeric setters and swallowed them. Dispatch is now table-driven: each numeric setting is one entry (DB key, label, apply callback), matched before visibility toggles regardless of trailing words.
+- Cut the circle's per-tick WoW API calls from roughly 20,000/sec at the default 200 segments to a handful. Segment geometry (`SetPoint`) is now cached and only recomputed when radius or segment count actually changes; colour is set once at build time and only alpha (`SetAlpha`) varies per tick. Cursor tracking now runs every frame instead of sharing the segment-appearance throttle, so the circle no longer visibly trails the cursor.
+- Added `ns.Print`, giving every chat output site — previously each retyping `Crosshairs: `, and `status` with no prefix at all — one consistent, coloured, greppable prefix.
+- Added a stub-API test harness (`tests/`), run in CI, that loads the addon against a stubbed WoW API and checks version-string formatting, `ADDON_LOADED` defaults, combat-visibility combinations, clamped hostile input, and the segment re-anchoring behaviour above.
+- Removed load-time `pcall` calls in `Cross.lua`/`Circle.lua` that claimed to apply saved settings before `PLAYER_LOGIN` but, since SavedVariables aren't populated until `ADDON_LOADED`, only ever applied defaults. Defaults are now filled in exactly once, at `ADDON_LOADED`.
+
 ## [1.2.4]
 
 Correctness fixes. No restructuring and no intended change to how anything looks.
