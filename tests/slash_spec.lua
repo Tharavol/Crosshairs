@@ -32,4 +32,16 @@ return function(stub, T)
         addon.env.SlashCmdList["CROSSHAIRS"]("set segments banana")
         T.AssertEqual(addon.env.CrosshairsDB.circleSegments, before)
     end)
+
+    T.Test("a trailing word after a numeric setter still applies the value (#8)", function()
+        local addon = LoggedInAddon()
+        addon.env.SlashCmdList["CROSSHAIRS"]("set segments 200 please")
+        T.AssertEqual(addon.env.CrosshairsDB.circleSegments, 200)
+    end)
+
+    T.Test("set cross in on toggles the visibility setting", function()
+        local addon = LoggedInAddon()
+        addon.env.SlashCmdList["CROSSHAIRS"]("set cross in on")
+        T.AssertEqual(addon.env.CrosshairsDB.crossInCombat, true)
+    end)
 end
