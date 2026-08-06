@@ -88,10 +88,17 @@ local function NewEnv()
         if frameType == "CheckButton" then
             f.Text = MakeWidget("FontString", nil)
         end
-        if frameType == "Slider" and name then
-            _G[name .. "Low"] = MakeWidget("FontString", name .. "Low")
-            _G[name .. "High"] = MakeWidget("FontString", name .. "High")
-            _G[name .. "Text"] = MakeWidget("FontString", name .. "Text")
+        if frameType == "Slider" then
+            -- Mimics UISliderTemplateWithLabels: Low/High/Text as direct parentKey
+            -- fields, present whether or not the slider has a name.
+            f.Low = MakeWidget("FontString", name and (name .. "Low"))
+            f.High = MakeWidget("FontString", name and (name .. "High"))
+            f.Text = MakeWidget("FontString", name and (name .. "Text"))
+            if name then
+                _G[name .. "Low"] = f.Low
+                _G[name .. "High"] = f.High
+                _G[name .. "Text"] = f.Text
+            end
         end
         return f
     end
@@ -153,6 +160,13 @@ local function NewEnv()
         OpenToCategory = function() end,
     }
     env.SlashCmdList = {}
+    env.GameTooltip = {
+        SetOwner = function() end,
+        SetText = function() end,
+        Show = function() end,
+        Hide = function() end,
+    }
+    env.GameTooltip_Hide = function() env.GameTooltip:Hide() end
     -- Records the last info table passed to SetupColorPickerAndShow so a test can call
     -- info.swatchFunc()/cancelFunc() itself to simulate a pick, and GetColorRGB() reads
     -- back whatever the test set on ColorPickerFrame first.

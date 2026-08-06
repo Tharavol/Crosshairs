@@ -41,11 +41,38 @@ local function AddHeading(text)
     return fs
 end
 
+-- CreateFrame raises immediately if `template` doesn't resolve on the running client,
+-- taking the rest of this file's registration down with it (#18) -- so the modern
+-- template is tried first and a known-good older one is the fallback, rather than
+-- assuming success.
+local function CreateFrameWithFallback(frameType, name, parent, template, fallbackTemplate)
+    local ok, frame = pcall(CreateFrame, frameType, name, parent, template)
+    if ok and frame then return frame end
+    return CreateFrame(frameType, name, parent, fallbackTemplate)
+end
+
+-- UICheckButtonTemplate (verified against MoxieTracker, Auctionator, TLDRMissions) does
+-- not reliably expose a usable built-in text/tooltip region across client versions --
+-- Auctionator and MoxieTracker both add their own label and wire OnEnter/OnLeave by
+-- hand rather than relying on it, so this does the same instead of setting cb.Text /
+-- cb.tooltipText the way the pre-10.0 InterfaceOptionsCheckButtonTemplate wanted.
 local function AddCheckbox(label, tooltip, dbKey, onChange)
-    local cb = CreateFrame("CheckButton", nil, panel, "InterfaceOptionsCheckButtonTemplate")
+    local cb = CreateFrameWithFallback("CheckButton", nil, panel,
+        "UICheckButtonTemplate", "InterfaceOptionsCheckButtonTemplate")
+    cb:SetSize(24, 24)
     Place(cb, 0, 8)
-    cb.Text:SetText(label)
-    cb.tooltipText = tooltip
+
+    local text = panel:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
+    text:SetPoint("LEFT", cb, "RIGHT", 4, 0)
+    text:SetText(label)
+
+    cb:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:SetText(tooltip)
+        GameTooltip:Show()
+    end)
+    cb:SetScript("OnLeave", GameTooltip_Hide)
+
     cb:SetScript("OnClick", function(self)
         CrosshairsDB[dbKey] = self:GetChecked() and true or false
         if onChange then onChange() end
@@ -58,18 +85,27 @@ end
 
 -- Bounds come from ns.limits (Core.lua) so the sliders and the slash setters enforce
 -- one shared range; see the comment there for why the caps exist.
+--
+-- UISliderTemplateWithLabels (verified against WarbandMiser and DejaCharacterStats)
+-- exposes Low/High/Text as direct fields (slider.Low) rather than the pre-10.0
+-- OptionsSliderTemplate's globals ($parentLow via _G[name.."Low"]) -- try the field
+-- first and fall back to the global so this works with whichever template resolved.
 local function AddSlider(label, dbKey, step, onChange)
     local minV, maxV = ns.limits[dbKey].min, ns.limits[dbKey].max
     local name = "CrosshairsOption" .. dbKey .. "Slider"
-    local slider = CreateFrame("Slider", name, panel, "OptionsSliderTemplate")
+    local slider = CreateFrameWithFallback("Slider", name, panel,
+        "UISliderTemplateWithLabels", "OptionsSliderTemplate")
     Place(slider, 8, 24)
     slider:SetWidth(260)
+    if slider.SetOrientation then slider:SetOrientation("HORIZONTAL") end
     slider:SetMinMaxValues(minV, maxV)
     slider:SetValueStep(step)
     slider:SetObeyStepOnDrag(true)
-    _G[name .. "Low"]:SetText(minV)
-    _G[name .. "High"]:SetText(maxV)
-    local text = _G[name .. "Text"]
+    local low = slider.Low or _G[name .. "Low"]
+    local high = slider.High or _G[name .. "High"]
+    local text = slider.Text or _G[name .. "Text"]
+    low:SetText(minV)
+    high:SetText(maxV)
     local function UpdateLabel(value)
         text:SetText(label .. ": " .. tostring(value))
     end
