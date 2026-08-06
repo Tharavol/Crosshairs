@@ -1,6 +1,6 @@
 ## Interface: 120007
-## Title: crosshairs
-## Notes: Draws a simple crosshair at the center of the screen
+## Title: Crosshairs
+## Notes: Draws a crosshair at the center of the screen and a cursor circle that tracks cast and global cooldown progress
 ## Author: Tharavol, Claude, GitHub Copilot
 ## Version: @project-version@
 ## X-License: GPL-3.0

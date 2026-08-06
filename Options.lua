@@ -13,7 +13,7 @@ title:SetText("Crosshairs")
 
 local versionText = panel:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
 versionText:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -16, -16)
-versionText:SetText("v" .. ns.GetAddonVersion())
+versionText:SetText(ns.GetAddonVersion())
 
 local subtitle = panel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
 subtitle:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -8)
@@ -48,7 +48,10 @@ local function AddCheckbox(label, tooltip, dbKey, onChange)
     return cb
 end
 
-local function AddSlider(label, dbKey, minV, maxV, step, onChange)
+-- Bounds come from ns.limits (Core.lua) so the sliders and the slash setters enforce
+-- one shared range; see the comment there for why the caps exist.
+local function AddSlider(label, dbKey, step, onChange)
+    local minV, maxV = ns.limits[dbKey].min, ns.limits[dbKey].max
     local name = "CrosshairsOption" .. dbKey .. "Slider"
     local slider = CreateFrame("Slider", name, panel, "OptionsSliderTemplate")
     slider:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", 8, -24)
@@ -80,27 +83,21 @@ end
 AddHeading("Cross")
 AddCheckbox("Show in combat", "Show the center cross while in combat.", "crossInCombat", ns.ApplyCombatState)
 AddCheckbox("Show out of combat", "Show the center cross while out of combat.", "crossOutOfCombat", ns.ApplyCombatState)
-AddSlider("Cross size", "crossSize", 4, 200, 1, function() ns.ApplyCrossSettings() end)
-AddSlider("Cross thickness", "crossThickness", 1, 30, 1, function() ns.ApplyCrossSettings() end)
+AddSlider("Cross size", "crossSize", 1, function() ns.ApplyCrossSettings() end)
+AddSlider("Cross thickness", "crossThickness", 1, function() ns.ApplyCrossSettings() end)
 
 AddHeading("Cursor Circle")
 AddCheckbox("Show in combat", "Show the cursor circle while in combat.", "circleInCombat", ns.ApplyCombatState)
 AddCheckbox("Show out of combat", "Show the cursor circle while out of combat.",
     "circleOutOfCombat", ns.ApplyCombatState)
-AddSlider("Base radius", "circleBaseRadius", 4, 150, 1, nil)
--- Capped at 256 (rather than the previous 720): each segment is its own texture updated
--- every ~30ms, and 256 is already smooth while keeping that per-tick cost reasonable.
-AddSlider("Segments", "circleSegments", 8, 256, 1, function() ns.BuildCircleLines() end)
-AddSlider("Line thickness", "circleLineThickness", 1, 20, 1, function() ns.BuildCircleLines() end)
+AddSlider("Base radius", "circleBaseRadius", 1, nil)
+AddSlider("Segments", "circleSegments", 1, function() ns.BuildCircleLines() end)
+AddSlider("Line thickness", "circleLineThickness", 1, function() ns.BuildCircleLines() end)
 
 AddHeading("Other")
 AddCheckbox("Debug mode",
     "Show a cursor-tracking debug dot and print diagnostic messages when settings change.",
-    "debugMode", function()
-    if ns.debugDot then
-        if CrosshairsDB.debugMode then ns.debugDot:Show() else ns.debugDot:Hide() end
-    end
-end)
+    "debugMode", function() ns.SetDebugMode(CrosshairsDB.debugMode) end)
 
 local resetButton = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
 resetButton:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", -8, -24)
