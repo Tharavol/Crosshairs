@@ -60,12 +60,27 @@ local function GetActiveCastFraction()
     return nil
 end
 
+-- Reads the global cooldown across both API generations. Retail 11.0+ replaced the
+-- `startTime, duration, enabled` tuple with a single info table, so the old call put a
+-- table in `startTime` and nil in the rest: the guard failed on every call and the
+-- circle silently never tracked the GCD, only actual casts. No Lua error was raised,
+-- which is why it went unnoticed.
 local function GetGCDFraction()
-    if type(GetSpellCooldown) ~= "function" then
-        return nil
+    local startTime, duration
+    if C_Spell and C_Spell.GetSpellCooldown then
+        local info = C_Spell.GetSpellCooldown(GCD_SPELL_ID)
+        -- isEnabled false means the cooldown shouldn't be displayed yet; absent on
+        -- some paths, so only an explicit false suppresses it.
+        if info and info.isEnabled ~= false then
+            startTime, duration = info.startTime, info.duration
+        end
+    elseif type(GetSpellCooldown) == "function" then
+        local enabled
+        startTime, duration, enabled = GetSpellCooldown(GCD_SPELL_ID)
+        if enabled == 0 then return nil end
     end
-    local startTime, duration, enabled = GetSpellCooldown(GCD_SPELL_ID)
-    if enabled and duration and duration > 0 and startTime and startTime > 0 then
+
+    if startTime and duration and startTime > 0 and duration > 0 then
         local elapsed = GetTime() - startTime
         if elapsed >= 0 and elapsed <= duration then
             return math.min(1, math.max(0, elapsed / duration))

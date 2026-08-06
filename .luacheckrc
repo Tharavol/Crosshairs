@@ -22,7 +22,7 @@ globals = {
 
 read_globals = {
     -- Namespaced API tables
-    "C_AddOns",
+    "C_AddOns", "C_Spell",
 
     -- Frame / UI globals
     "CreateFrame", "UIParent", "GetCursorPosition",
