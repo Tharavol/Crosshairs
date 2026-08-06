@@ -7,7 +7,7 @@ Installation
 ------------
 Copy the folder to your World of Warcraft installation:
 
-- Windows: World of Warcraft\_retail_\Interface\AddOns\crosshairs
+- Windows: World of Warcraft\_retail_\Interface\AddOns\Crosshairs
 
 Usage
 -----

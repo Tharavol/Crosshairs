@@ -22,8 +22,8 @@ jobs:
           GITHUB_OAUTH: ${{ secrets.GITHUB_TOKEN }}
           # Optional. Set these repository secrets to publish automatically;
           # without them the packager just attaches the zip to the GitHub
-          # release. CF_API_KEY additionally needs ## X-Curse-Project-ID in
-          # the .toc.
-          CF_API_KEY: ${{ secrets.CF_API_KEY }}
+          # release. Publishing to CurseForge would additionally need a
+          # CF_API_KEY secret and ## X-Curse-Project-ID in the .toc; neither
+          # exists, so that path is deliberately not wired up.
           WOWI_API_TOKEN: ${{ secrets.WOWI_API_TOKEN }}
           WAGO_API_TOKEN: ${{ secrets.WAGO_API_TOKEN }}
