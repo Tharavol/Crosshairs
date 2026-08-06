@@ -153,6 +153,16 @@ local function NewEnv()
         OpenToCategory = function() end,
     }
     env.SlashCmdList = {}
+    -- Records the last info table passed to SetupColorPickerAndShow so a test can call
+    -- info.swatchFunc()/cancelFunc() itself to simulate a pick, and GetColorRGB() reads
+    -- back whatever the test set on ColorPickerFrame first.
+    env.ColorPickerFrame = {
+        SetupColorPickerAndShow = function(self, info)
+            self._info = info
+            self._r, self._g, self._b = info.r, info.g, info.b
+        end,
+        GetColorRGB = function(self) return self._r, self._g, self._b end,
+    }
 
     return env, api, frames
 end

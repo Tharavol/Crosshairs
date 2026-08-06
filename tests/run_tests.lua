@@ -14,5 +14,6 @@ dofile("tests/init_spec.lua")(stub, T)
 dofile("tests/combat_spec.lua")(stub, T)
 dofile("tests/circle_spec.lua")(stub, T)
 dofile("tests/slash_spec.lua")(stub, T)
+dofile("tests/options_spec.lua")(stub, T)
 
 os.exit(T.Summary() and 0 or 1)

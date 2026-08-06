@@ -54,6 +54,12 @@ ns.defaults = {
     -- cross appearance defaults
     crossSize = 50,       -- leg length in pixels
     crossThickness = 2,   -- thickness in pixels
+    -- Colours are tables rather than flat keys, per #16. Always replace this table
+    -- wholesale when changing a colour (Options.lua's swatch does) rather than mutating
+    -- its fields in place -- ApplyDefaults below copies the reference, not a deep copy,
+    -- so an in-place mutation would corrupt this default too.
+    crossColor = { r = 0.5, g = 0.05, b = 0.05, a = 1 },  -- dark red
+    circleColor = { r = 0.6, g = 0.8, b = 1, a = 1 },     -- light blue
 }
 local defaults = ns.defaults
 

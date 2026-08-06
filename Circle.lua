@@ -60,8 +60,10 @@ local function BuildCircleLines()
     for i = 1, n do
         local tex = AcquireTexture(i)
         tex:SetSize(segSize, segSize)
-        -- Colour is set once here; only alpha varies per tick, in updateCirclePositions.
-        tex:SetColorTexture(0.6, 0.8, 1, 1)
+        -- Colour is set once here; only alpha varies per tick, in updateCirclePositions,
+        -- via SetAlpha -- which multiplies on top of this colour's own alpha channel.
+        local color = CrosshairsDB.circleColor or defaults.circleColor
+        tex:SetColorTexture(color.r, color.g, color.b, color.a)
         tex:Show()
         local angle = (math.pi / 2) - (i - 1) * (2 * math.pi / n)
         segmentAngles[i] = { cos = math.cos(angle), sin = math.sin(angle) }

@@ -30,6 +30,7 @@ read_globals = {
     -- Settings API (Settings is retail; the InterfaceOptions_* pair is the
     -- pre-10.0 fallback the addon still branches on)
     "Settings", "InterfaceOptions_AddCategory", "InterfaceOptionsFrame_OpenToCategory",
+    "ColorPickerFrame",
 
     -- Player / spell state
     "GetAddOnMetadata", "GetSpellCooldown", "GetTime", "InCombatLockdown",

@@ -87,11 +87,62 @@ local function AddSlider(label, dbKey, step, onChange)
     return slider
 end
 
+-- A small ColorPickerFrame-backed swatch. Alpha isn't exposed in the picker -- the
+-- reported problem (#16) is hue/brightness, dark red over a dark floor is nearly
+-- invisible, not transparency -- so only RGB round-trips through it; whatever alpha the
+-- colour already has is preserved. Always replaces CrosshairsDB[dbKey] with a new table
+-- rather than mutating the existing one in place; see the comment on the colour defaults
+-- in Core.lua for why that matters.
+local function AddColorSwatch(label, dbKey, onChange)
+    local name = "CrosshairsOption" .. dbKey .. "Swatch"
+    local swatch = CreateFrame("Button", name, panel)
+    swatch:SetSize(20, 20)
+    Place(swatch, 0, 8)
+
+    local swatchTexture = swatch:CreateTexture(nil, "OVERLAY")
+    swatchTexture:SetAllPoints(true)
+
+    local text = panel:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
+    text:SetPoint("LEFT", swatch, "RIGHT", 8, 0)
+    text:SetText(label)
+
+    local function CurrentColor()
+        return CrosshairsDB[dbKey] or ns.defaults[dbKey]
+    end
+
+    local function SetColor(r, g, b)
+        local alpha = CurrentColor().a
+        CrosshairsDB[dbKey] = { r = r, g = g, b = b, a = alpha }
+        swatchTexture:SetColorTexture(r, g, b, 1)
+        if onChange then onChange() end
+    end
+
+    swatch:SetScript("OnClick", function()
+        if not (ColorPickerFrame and ColorPickerFrame.SetupColorPickerAndShow) then return end
+        local color = CurrentColor()
+        ColorPickerFrame:SetupColorPickerAndShow({
+            r = color.r, g = color.g, b = color.b,
+            swatchFunc = function() SetColor(ColorPickerFrame:GetColorRGB()) end,
+            cancelFunc = function(previous)
+                if previous then SetColor(previous.r, previous.g, previous.b) end
+            end,
+        })
+    end)
+
+    table.insert(widgets, function()
+        local color = CurrentColor()
+        swatchTexture:SetColorTexture(color.r, color.g, color.b, 1)
+    end)
+
+    return swatch
+end
+
 AddHeading("Cross")
 AddCheckbox("Show in combat", "Show the center cross while in combat.", "crossInCombat", ns.ApplyCombatState)
 AddCheckbox("Show out of combat", "Show the center cross while out of combat.", "crossOutOfCombat", ns.ApplyCombatState)
 AddSlider("Cross size", "crossSize", 1, function() ns.ApplyCrossSettings() end)
 AddSlider("Cross thickness", "crossThickness", 1, function() ns.ApplyCrossSettings() end)
+AddColorSwatch("Cross colour", "crossColor", function() ns.ApplyCrossSettings() end)
 
 AddHeading("Cursor Circle")
 AddCheckbox("Show in combat", "Show the cursor circle while in combat.", "circleInCombat", ns.ApplyCombatState)
@@ -100,6 +151,7 @@ AddCheckbox("Show out of combat", "Show the cursor circle while out of combat.",
 AddSlider("Base radius", "circleBaseRadius", 1, nil)
 AddSlider("Segments", "circleSegments", 1, function() ns.BuildCircleLines() end)
 AddSlider("Line thickness", "circleLineThickness", 1, function() ns.BuildCircleLines() end)
+AddColorSwatch("Circle colour", "circleColor", function() ns.BuildCircleLines() end)
 
 AddHeading("Other")
 AddCheckbox("Debug mode",
