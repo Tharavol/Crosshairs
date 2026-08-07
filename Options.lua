@@ -63,13 +63,19 @@ local function AddHeading(text)
 end
 
 -- CreateFrame raises immediately if `template` doesn't resolve on the running client,
--- taking the rest of this file's registration down with it (#18) -- so the modern
--- template is tried first and a known-good older one is the fallback, rather than
--- assuming success.
-local function CreateFrameWithFallback(frameType, name, parent, template, fallbackTemplate)
-    local ok, frame = pcall(CreateFrame, frameType, name, parent, template)
-    if ok and frame then return frame end
-    return CreateFrame(frameType, name, parent, fallbackTemplate)
+-- taking the rest of this file's registration down with it (#18) -- only the *first*
+-- attempt was ever pcall'd, though, so a client missing both the modern template and the
+-- older fallback (as newer clients increasingly do -- Blizzard keeps retiring these) still
+-- threw on the second, unguarded CreateFrame call and aborted everything queued after it.
+-- Every candidate is now tried in order and caught; if none resolve, an untemplated frame
+-- is used instead of raising, since a plain frame with hand-built visuals (see AddSlider)
+-- beats losing the rest of the panel.
+local function CreateFrameWithFallback(frameType, name, parent, templates)
+    for _, template in ipairs(templates) do
+        local ok, frame = pcall(CreateFrame, frameType, name, parent, template)
+        if ok and frame then return frame, template end
+    end
+    return CreateFrame(frameType, name, parent), nil
 end
 
 -- UICheckButtonTemplate (verified against MoxieTracker, Auctionator, TLDRMissions) does
@@ -78,9 +84,21 @@ end
 -- hand rather than relying on it, so this does the same instead of setting cb.Text /
 -- cb.tooltipText the way the pre-10.0 InterfaceOptionsCheckButtonTemplate wanted.
 local function AddCheckbox(label, tooltip, dbKey, onChange)
-    local cb = CreateFrameWithFallback("CheckButton", nil, scrollChild,
-        "UICheckButtonTemplate", "InterfaceOptionsCheckButtonTemplate")
+    local cb, template = CreateFrameWithFallback("CheckButton", nil, scrollChild,
+        { "UICheckButtonTemplate", "InterfaceOptionsCheckButtonTemplate" })
     cb:SetSize(24, 24)
+    if not template then
+        -- No known checkbox template resolved: the frame has no check art at all, so
+        -- give it a minimal box + checkmark rather than an invisible click target.
+        local box = cb:CreateTexture(nil, "BACKGROUND")
+        box:SetColorTexture(0.15, 0.15, 0.15, 0.9)
+        box:SetAllPoints(true)
+        local check = cb:CreateTexture(nil, "OVERLAY")
+        check:SetColorTexture(0.6, 0.8, 1, 1)
+        check:SetPoint("TOPLEFT", 3, -3)
+        check:SetPoint("BOTTOMRIGHT", -3, 3)
+        cb:SetCheckedTexture(check)
+    end
     Place(cb, 0, 8)
 
     local text = scrollChild:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
@@ -107,26 +125,67 @@ end
 -- Bounds come from ns.limits (Core.lua) so the sliders and the slash setters enforce
 -- one shared range; see the comment there for why the caps exist.
 --
--- UISliderTemplateWithLabels (verified against WarbandMiser and DejaCharacterStats)
--- exposes Low/High/Text as direct fields (slider.Low) rather than the pre-10.0
--- OptionsSliderTemplate's globals ($parentLow via _G[name.."Low"]) -- try the field
--- first and fall back to the global so this works with whichever template resolved.
+-- Used to read Low/High/Text off whichever slider template resolved (UISliderTemplateWithLabels
+-- exposes them as direct fields, the pre-10.0 OptionsSliderTemplate as $parent-prefixed
+-- globals). That assumed one of the two templates always resolved and always carried those
+-- regions; on a client with neither, `low`/`high`/`text` came back nil and the first SetText
+-- below raised, taking the rest of the panel with it -- the same failure mode #18 fixed for
+-- checkboxes, just missed here. Labels are now built by hand instead, same as AddCheckbox's
+-- own label, so they don't depend on template internals at all.
 local function AddSlider(label, dbKey, step, onChange)
     local minV, maxV = ns.limits[dbKey].min, ns.limits[dbKey].max
     local name = "CrosshairsOption" .. dbKey .. "Slider"
-    local slider = CreateFrameWithFallback("Slider", name, scrollChild,
-        "UISliderTemplateWithLabels", "OptionsSliderTemplate")
+    local slider, template = CreateFrameWithFallback("Slider", name, scrollChild,
+        { "UISliderTemplateWithLabels", "OptionsSliderTemplate" })
     Place(slider, 8, 24)
     slider:SetWidth(260)
+    -- Tall enough to reserve room for the low/high row anchored inside its bottom edge
+    -- below, so Place()'s next-widget math (which reads this frame's own GetBottom())
+    -- accounts for that row instead of the next widget overlapping it.
+    slider:SetHeight(30)
     if slider.SetOrientation then slider:SetOrientation("HORIZONTAL") end
     slider:SetMinMaxValues(minV, maxV)
     slider:SetValueStep(step)
     slider:SetObeyStepOnDrag(true)
+    if not template then
+        -- No known slider template resolved: the frame has no track/thumb art at all,
+        -- so give it minimal visuals rather than an invisible drag strip.
+        local track = slider:CreateTexture(nil, "BACKGROUND")
+        track:SetColorTexture(0.15, 0.15, 0.15, 0.9)
+        track:SetPoint("TOPLEFT", 0, -6)
+        track:SetPoint("TOPRIGHT", 0, -6)
+        track:SetHeight(4)
+        local thumb = slider:CreateTexture(nil, "OVERLAY")
+        thumb:SetColorTexture(0.6, 0.8, 1, 1)
+        thumb:SetSize(10, 16)
+        slider:SetThumbTexture(thumb)
+    end
+
+    -- Reuse the template's own Low/High/Text regions when it provided them (they're
+    -- already correctly laid out by its XML) rather than always creating fresh ones on
+    -- top -- a resolved template still has default placeholder text ("Low"/"High") in
+    -- those regions until something calls SetText on them, and stacking a second set of
+    -- labels behind/in front of that placeholder just meant the real min/max never showed
+    -- through. Only build our own when the template genuinely didn't expose them (or none
+    -- resolved at all), same as AddCheckbox already does for its label.
     local low = slider.Low or _G[name .. "Low"]
     local high = slider.High or _G[name .. "High"]
     local text = slider.Text or _G[name .. "Text"]
+    if not low then
+        low = scrollChild:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+        low:SetPoint("BOTTOMLEFT", slider, "BOTTOMLEFT", 0, 0)
+    end
+    if not high then
+        high = scrollChild:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+        high:SetPoint("BOTTOMRIGHT", slider, "BOTTOMRIGHT", 0, 0)
+    end
+    if not text then
+        text = scrollChild:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
+        text:SetPoint("BOTTOMLEFT", slider, "TOPLEFT", 0, 2)
+    end
     low:SetText(minV)
     high:SetText(maxV)
+
     local function UpdateLabel(value)
         text:SetText(label .. ": " .. tostring(value))
     end

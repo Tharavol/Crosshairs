@@ -47,6 +47,8 @@ MakeWidget = function(kind, name)
     function w:SetJustifyH() end
     function w:SetChecked(checked) self._checked = checked and true or false end
     function w:GetChecked() return self._checked end
+    function w:SetCheckedTexture(texture) self._checkedTexture = texture end
+    function w:SetThumbTexture(texture) self._thumbTexture = texture end
     function w:SetMinMaxValues(lo, hi) self._min, self._max = lo, hi end
     function w:SetValueStep(step) self._step = step end
     function w:SetObeyStepOnDrag() end
@@ -81,19 +83,30 @@ end
 -- controllable API state (api, e.g. api.combat = true), and every frame CreateFrame
 -- produces (frames) -- since the addon's event frame is anonymous, tests find it by
 -- which events it registered rather than by name.
-local function NewEnv()
+-- blockedTemplates: optional set ({ TemplateName = true, ... }) of template names that
+-- should fail to resolve, the way a template Blizzard has removed does on a real client --
+-- lets tests exercise CreateFrameWithFallback's last-resort (untemplated) path.
+local function NewEnv(blockedTemplates)
     local frames = {}
 
     local function CreateFrame(frameType, name, parent, template)
+        if template and blockedTemplates and blockedTemplates[template] then
+            error("template not found: " .. template)
+        end
         local f = MakeWidget(frameType, name)
         f._parent = parent
         f.template = template
         table.insert(frames, f)
         if name then _G[name] = f end
-        if frameType == "CheckButton" then
+        -- These sub-regions only exist on a real client when a template that defines them
+        -- resolved -- an untemplated frame (this stub's/CreateFrameWithFallback's
+        -- last-resort path) has none, so only fabricate them here when `template` is set,
+        -- letting tests exercise the hand-built-label fallback the same way a client with
+        -- no working template does.
+        if frameType == "CheckButton" and template then
             f.Text = MakeWidget("FontString", nil)
         end
-        if frameType == "Slider" then
+        if frameType == "Slider" and template then
             -- Mimics UISliderTemplateWithLabels: Low/High/Text as direct parentKey
             -- fields, present whether or not the slider has a name.
             f.Low = MakeWidget("FontString", name and (name .. "Low"))
@@ -205,9 +218,9 @@ end
 
 -- Loads the addon fresh: a new stub environment and a new shared `ns` table, exactly
 -- like WoW handing each file the same addon table via `...`. Returns everything a test
--- needs to drive and inspect it.
-function M.LoadAddon(rootDir, tocPath)
-    local env, api, frames = NewEnv()
+-- needs to drive and inspect it. `opts.blockedTemplates` is forwarded to NewEnv, see there.
+function M.LoadAddon(rootDir, tocPath, opts)
+    local env, api, frames = NewEnv(opts and opts.blockedTemplates)
     local ns = {}
     for _, file in ipairs(TocFileList(tocPath)) do
         local chunk = assert(loadfile(rootDir .. "/" .. file))

@@ -46,4 +46,29 @@ return function(stub, T)
         T.AssertEqual(picked.a, addon.ns.defaults.crossColor.a, "alpha should carry over unchanged")
         T.AssertEqual(addon.ns.defaults.crossColor.r, 0.5, "picking a colour must not mutate the shared default")
     end)
+
+    -- On a client where neither slider template resolves (Blizzard has repeatedly renamed
+    -- or removed them, #18), the panel used to abort mid-build: AddSlider read Low/High/Text
+    -- off the template and indexed them unconditionally, so the very first slider after the
+    -- Cross checkboxes raised and silently took every widget after it down with it -- headings,
+    -- sliders, colour swatches, the whole Circle/Other sections and the reset button all
+    -- missing, with only the checkboxes built before the crash actually showing.
+    T.Test("the panel still builds completely when no slider or checkbox template resolves", function()
+        local addon = stub.LoadAddon(".", "Crosshairs.toc", {
+            blockedTemplates = {
+                UICheckButtonTemplate = true,
+                InterfaceOptionsCheckButtonTemplate = true,
+                UISliderTemplateWithLabels = true,
+                OptionsSliderTemplate = true,
+            },
+        })
+        local eventFrame = stub.FindFrame(addon.frames, "ADDON_LOADED")
+        eventFrame._scripts.OnEvent(eventFrame, "ADDON_LOADED", "Crosshairs")
+
+        -- Widgets from every section, including ones built well after the first slider,
+        -- must all exist -- proof the file ran to completion instead of aborting partway.
+        T.AssertTrue(_G["CrosshairsOptioncrossColorSwatch"] ~= nil, "cross colour swatch missing")
+        T.AssertTrue(_G["CrosshairsOptioncircleColorSwatch"] ~= nil, "circle colour swatch missing")
+        T.AssertTrue(addon.ns.optionsPanel ~= nil, "options panel was never registered")
+    end)
 end
