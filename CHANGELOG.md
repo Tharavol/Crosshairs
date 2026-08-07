@@ -2,6 +2,18 @@
 
 All notable changes to the Crosshairs addon are documented in this file.
 
+## [1.5.1]
+
+Bugfix release.
+
+- Fixed the options panel silently truncating after the "Cross" checkboxes on clients
+  where no known slider/checkbox template resolves — Blizzard periodically renames or
+  removes legacy UI templates, and the fallback path itself was unguarded, so a client
+  missing both the modern and older template raised an uncaught error partway through
+  building the panel (#53). Every template candidate is now tried safely, and both widget
+  types fall back to minimal hand-drawn visuals rather than losing the rest of the panel
+  when nothing resolves.
+
 ## [1.5.0]
 
 Polish. No known bugs and no queued features going in -- a rough-edge sweep over
