@@ -57,4 +57,39 @@ return function(stub, T)
         addon.env.SlashCmdList["CROSSHAIRS"]("set cross in onn")
         T.AssertEqual(addon.env.CrosshairsDB.crossInCombat, before)
     end)
+
+    -- The options panel only re-reads CrosshairsDB when it's shown (Options.lua's OnShow),
+    -- so a slash command run while the panel is already open used to leave its checkboxes
+    -- and sliders showing stale values until the panel was closed and reopened. Each setter
+    -- family now calls RefreshWidgets itself; these confirm that wiring stays in place.
+    local function CountRefreshes(addon)
+        local calls = 0
+        local original = addon.ns.optionsPanel.RefreshWidgets
+        addon.ns.optionsPanel.RefreshWidgets = function(...)
+            calls = calls + 1
+            return original(...)
+        end
+        return function() return calls end
+    end
+
+    T.Test("a visibility slash command refreshes an already-open options panel", function()
+        local addon = LoggedInAddon()
+        local Calls = CountRefreshes(addon)
+        addon.env.SlashCmdList["CROSSHAIRS"]("set cross in off")
+        T.AssertEqual(Calls(), 1)
+    end)
+
+    T.Test("a numeric slash command refreshes an already-open options panel", function()
+        local addon = LoggedInAddon()
+        local Calls = CountRefreshes(addon)
+        addon.env.SlashCmdList["CROSSHAIRS"]("set segments 100")
+        T.AssertEqual(Calls(), 1)
+    end)
+
+    T.Test("a debug slash command refreshes an already-open options panel", function()
+        local addon = LoggedInAddon()
+        local Calls = CountRefreshes(addon)
+        addon.env.SlashCmdList["CROSSHAIRS"]("debug on")
+        T.AssertEqual(Calls(), 1)
+    end)
 end

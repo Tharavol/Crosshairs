@@ -68,12 +68,23 @@ for _, entry in ipairs(VISIBILITY_SETTINGS) do
     VISIBILITY_SETTINGS_BY_COMMAND[entry.category][entry.when] = entry
 end
 
+-- The options panel only pulls fresh values from CrosshairsDB when it's shown (see
+-- Options.lua's OnShow), so a slash command run while the panel is already open left it
+-- displaying stale checkboxes/sliders until closed and reopened. Every setter below that
+-- touches a value the panel also displays calls this afterward to keep the two in sync.
+local function RefreshOptionsPanel()
+    if ns.optionsPanel and ns.optionsPanel.RefreshWidgets then
+        ns.optionsPanel.RefreshWidgets()
+    end
+end
+
 -- Applies a clamped numeric setting and says so when the value was adjusted, since
 -- silently storing something other than what was typed reads as the command failing.
 local function SetNumeric(entry, input)
     local value, clamped = ns.ClampSetting(entry.key, input)
     CrosshairsDB[entry.key] = value
     if entry.apply then entry.apply() end
+    RefreshOptionsPanel()
     if clamped then
         ns.Print(entry.label .. " set to " .. value .. " (clamped to " .. Range(entry.key) .. ")")
     else
@@ -159,6 +170,7 @@ SlashCmdList["CROSSHAIRS"] = function(msg)
 
     if cmd == "debug" and (args[2] == "on" or args[2] == "off") then
         ns.SetDebugMode(args[2] == "on")
+        RefreshOptionsPanel()
         ns.Print("debug mode set to", args[2])
         return
     end
@@ -198,6 +210,7 @@ SlashCmdList["CROSSHAIRS"] = function(msg)
                 end
                 CrosshairsDB[visibility.key] = enabled
                 ns.ApplyCombatState()
+                RefreshOptionsPanel()
                 ns.Print("Setting applied.")
                 return
             end
