@@ -2,6 +2,23 @@
 
 All notable changes to the Crosshairs addon are documented in this file.
 
+## [1.5.0]
+
+Polish. No known bugs and no queued features going in -- a rough-edge sweep over
+what v1.4.0 shipped rather than new scope.
+
+- Fixed the options panel's widget stack (headings, checkboxes, sliders, colour swatches,
+  the reset button) being able to run taller than the Blizzard AddOns settings canvas and
+  silently clip. It now lives in a scroll frame, sized from the panel's actual rendered
+  geometry rather than a guessed height, so it can no longer be cut off regardless of
+  resolution or UI scale.
+- Fixed `/crosshairs set <cross|circle> <in|out> <value>` accepting any trailing value at
+  all: only `on`/`off`/`true`/`false` were ever meant to work, but a typo like `onn` fell
+  through to `false` and still printed "Setting applied.", silently disabling the setting
+  instead of reporting the bad input the way every numeric setter already does. Also
+  documented the `true|false` alias in the command's usage text, since it was accepted but
+  never advertised.
+
 ## [1.4.0]
 
 Appearance and docs. The one group of changes since 1.2.4 that changes what existing
