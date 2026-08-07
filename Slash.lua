@@ -95,7 +95,8 @@ local function PrintUsage()
     ns.Print("commands (alias: /ch):")
     ns.Print("/crosshairs options - open the graphical options panel")
     ns.Print("/crosshairs status - show current settings")
-    ns.Print("/crosshairs set <cross|circle> <in|out> <on|off> - set visibility in/out of combat")
+    ns.Print("/crosshairs set <cross|circle> <in|out> <on|off> - set visibility in/out of combat " ..
+        "(also accepts true|false)")
     for _, entry in ipairs(NUMERIC_SETTINGS) do
         local note = entry.note and (" " .. entry.note) or ""
         ns.Print("/crosshairs set " .. entry.command .. " <n> - set " .. entry.description .. ", " ..
@@ -183,7 +184,19 @@ SlashCmdList["CROSSHAIRS"] = function(msg)
                     ns.Print("unknown option: " .. args[3])
                     return
                 end
-                CrosshairsDB[visibility.key] = (args[4] == "on" or args[4] == "true")
+                -- args[3] (in|out) was already validated above; args[4] wasn't, so any
+                -- typo (e.g. "onn") silently evaluated to false and reported success as
+                -- if it had worked (#52). Reject anything but on/off/true/false instead.
+                local enabled
+                if args[4] == "on" or args[4] == "true" then
+                    enabled = true
+                elseif args[4] == "off" or args[4] == "false" then
+                    enabled = false
+                else
+                    ns.Print("unknown value: " .. args[4] .. " (expected on|off)")
+                    return
+                end
+                CrosshairsDB[visibility.key] = enabled
                 ns.ApplyCombatState()
                 ns.Print("Setting applied.")
                 return

@@ -10,6 +10,19 @@ local defaults = ns.defaults
 -- the shared global cooldown rather than any particular ability's cooldown.
 local GCD_SPELL_ID = 61304
 
+-- How far the circle expands while Alt is held (updateCirclePositions's radius multiplier).
+local ALT_EXPAND_FACTOR = 1.8
+-- Extra headroom on top of the diameter when sizing circleFrame, so the outermost
+-- segment's own width doesn't get clipped at the frame edge.
+local FRAME_SIZE_PADDING = 8
+-- How often segment appearance (geometry + alpha) is recomputed; cursor tracking itself
+-- runs every frame regardless, see the OnUpdate comment below.
+local UPDATE_THROTTLE_SECONDS = 0.03
+-- Alpha range a segment fades across as cast/GCD progress reaches it, and how much of the
+-- circle (as a fraction of segment count) that fade spans at most.
+local MIN_ALPHA, MAX_ALPHA = 0.08, 1.00
+local MAX_FADE_RANGE = 0.35
+
 local circleFrame = CreateFrame("Frame", "CrosshairsCircle", UIParent)
 circleFrame:SetSize(10, 10)
 circleFrame:SetFrameStrata("MEDIUM") -- above background UI elements
@@ -130,9 +143,9 @@ end
 -- build time) always, since progress can move every tick during a cast.
 local function updateCirclePositions(radius, progress)
     local n = GetSegmentCount()
-    local minAlpha = 0.08
-    local maxAlpha = 1.00
-    local fadeRange = math.min(10 / n, 0.35)
+    local minAlpha = MIN_ALPHA
+    local maxAlpha = MAX_ALPHA
+    local fadeRange = math.min(10 / n, MAX_FADE_RANGE)
 
     local geometryChanged = n ~= lastGeometryN or radius ~= lastGeometryRadius
     lastGeometryN, lastGeometryRadius = n, radius
@@ -171,12 +184,12 @@ circleFrame:SetScript("OnUpdate", function(self, elapsed)
     self:SetPoint("CENTER", UIParent, "BOTTOMLEFT", x / scale, y / scale)
 
     updateTimer = updateTimer + elapsed
-    if updateTimer < 0.03 then return end
+    if updateTimer < UPDATE_THROTTLE_SECONDS then return end
     updateTimer = 0
 
-    local alt = IsAltKeyDown() and 1.8 or 1.0
+    local alt = IsAltKeyDown() and ALT_EXPAND_FACTOR or 1.0
     local radius = (CrosshairsDB.circleBaseRadius or defaults.circleBaseRadius) * alt
-    local size = math.ceil(radius * 2 + 8)
+    local size = math.ceil(radius * 2 + FRAME_SIZE_PADDING)
     self:SetSize(size, size)
     updateCirclePositions(radius, GetCircleProgress())
 end)

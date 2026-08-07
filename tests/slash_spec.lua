@@ -44,4 +44,17 @@ return function(stub, T)
         addon.env.SlashCmdList["CROSSHAIRS"]("set cross in on")
         T.AssertEqual(addon.env.CrosshairsDB.crossInCombat, true)
     end)
+
+    T.Test("set cross in true also toggles the visibility setting", function()
+        local addon = LoggedInAddon()
+        addon.env.SlashCmdList["CROSSHAIRS"]("set cross in true")
+        T.AssertEqual(addon.env.CrosshairsDB.crossInCombat, true)
+    end)
+
+    T.Test("a garbled visibility value is rejected instead of silently applied as off (#52)", function()
+        local addon = LoggedInAddon()
+        local before = addon.env.CrosshairsDB.crossInCombat
+        addon.env.SlashCmdList["CROSSHAIRS"]("set cross in onn")
+        T.AssertEqual(addon.env.CrosshairsDB.crossInCombat, before)
+    end)
 end
