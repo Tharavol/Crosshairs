@@ -23,6 +23,8 @@ MakeWidget = function(kind, name)
     end
     function w:SetSize(width, height) self._width, self._height = width, height end
     function w:SetWidth(width) self._width = width end
+    function w:SetHeight(height) self._height = height end
+    function w:SetScrollChild(child) self._scrollChild = child end
     function w:SetFrameStrata(strata) self._strata = strata end
     function w:EnableMouse(enabled) self._mouseEnabled = enabled end
     function w:SetScript(scriptType, fn)
@@ -60,12 +62,14 @@ MakeWidget = function(kind, name)
     function w:GetText() return self._text end
     function w:CreateTexture(texName)
         local tex = MakeWidget("Texture", texName)
+        tex._parent = self
         table.insert(self._children, tex)
         if texName then _G[texName] = tex end
         return tex
     end
     function w:CreateFontString(fsName)
         local fs = MakeWidget("FontString", fsName)
+        fs._parent = self
         table.insert(self._children, fs)
         if fsName then _G[fsName] = fs end
         return fs
@@ -80,8 +84,9 @@ end
 local function NewEnv()
     local frames = {}
 
-    local function CreateFrame(frameType, name, _, template)
+    local function CreateFrame(frameType, name, parent, template)
         local f = MakeWidget(frameType, name)
+        f._parent = parent
         f.template = template
         table.insert(frames, f)
         if name then _G[name] = f end

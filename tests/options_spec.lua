@@ -7,6 +7,19 @@
 return function(stub, T)
     print("options:")
 
+    T.Test("panel content lives in a scroll frame so it can't overflow the settings canvas (#51)", function()
+        stub.LoadAddon(".", "Crosshairs.toc")
+        local scrollFrame = _G["CrosshairsOptionsScrollFrame"]
+        T.AssertTrue(scrollFrame ~= nil, "options scroll frame was not created")
+        local scrollChild = scrollFrame._scrollChild
+        T.AssertTrue(scrollChild ~= nil, "scroll frame has no scroll child set")
+
+        -- Widgets built after the scroll frame (checkboxes, sliders, swatches, the reset
+        -- button) must actually be parented inside it, not left on the fixed header.
+        local swatch = _G["CrosshairsOptioncrossColorSwatch"]
+        T.AssertEqual(swatch._parent, scrollChild, "cross colour swatch is not parented to the scroll child")
+    end)
+
     T.Test("cross is raised to the circle's strata", function()
         local addon = stub.LoadAddon(".", "Crosshairs.toc")
         T.AssertEqual(addon.ns.crossFrame._strata, addon.ns.circleFrame._strata)

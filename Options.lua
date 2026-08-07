@@ -21,8 +21,29 @@ subtitle:SetPoint("RIGHT", panel, "RIGHT", -16, 0)
 subtitle:SetJustifyH("LEFT")
 subtitle:SetText("Draws a centered crosshair and a cursor circle that expands while Alt is held.")
 
+-- The widget stack below (headings, checkboxes, sliders, swatches, the reset button) can
+-- run taller than the Blizzard AddOns settings canvas -- 3 headings, 5 checkboxes, 5
+-- sliders, 2 colour swatches and a button add up to several hundred pixels -- so it lives
+-- in a scroll frame rather than being placed on `panel` directly, which would silently
+-- clip or overflow (#51). Title/version/subtitle stay on `panel` as a fixed header above it.
+local scrollFrame = CreateFrame("ScrollFrame", "CrosshairsOptionsScrollFrame", panel, "UIPanelScrollFrameTemplate")
+scrollFrame:SetPoint("TOPLEFT", subtitle, "BOTTOMLEFT", 0, -12)
+scrollFrame:SetPoint("BOTTOMRIGHT", panel, "BOTTOMRIGHT", -27, 16) -- -27 clears the template's scrollbar
+
+local scrollChild = CreateFrame("Frame", nil, scrollFrame)
+scrollChild:SetSize(1, 1) -- height is set by ResizeScrollChild once the widget stack below is built
+scrollFrame:SetScrollChild(scrollChild)
+scrollFrame:SetScript("OnSizeChanged", function(self, width) scrollChild:SetWidth(width) end)
+
+-- A zero-size marker rather than anchoring the first widget straight to scrollChild:
+-- Place() always anchors to the previous widget's BOTTOMLEFT, and scrollChild has no
+-- meaningful bottom edge yet (its height isn't known until the stack below is built).
+local topMarker = CreateFrame("Frame", nil, scrollChild)
+topMarker:SetSize(1, 1)
+topMarker:SetPoint("TOPLEFT", scrollChild, "TOPLEFT", 0, 0)
+
 local widgets = {}
-local anchor = subtitle
+local anchor = topMarker
 local anchorIndent = 0
 
 -- `indent` is measured from the panel's content column (0 = flush with headings and
@@ -35,7 +56,7 @@ local function Place(widget, indent, gap)
 end
 
 local function AddHeading(text)
-    local fs = panel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+    local fs = scrollChild:CreateFontString(nil, "ARTWORK", "GameFontNormal")
     Place(fs, 0, 20)
     fs:SetText(text)
     return fs
@@ -57,12 +78,12 @@ end
 -- hand rather than relying on it, so this does the same instead of setting cb.Text /
 -- cb.tooltipText the way the pre-10.0 InterfaceOptionsCheckButtonTemplate wanted.
 local function AddCheckbox(label, tooltip, dbKey, onChange)
-    local cb = CreateFrameWithFallback("CheckButton", nil, panel,
+    local cb = CreateFrameWithFallback("CheckButton", nil, scrollChild,
         "UICheckButtonTemplate", "InterfaceOptionsCheckButtonTemplate")
     cb:SetSize(24, 24)
     Place(cb, 0, 8)
 
-    local text = panel:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
+    local text = scrollChild:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
     text:SetPoint("LEFT", cb, "RIGHT", 4, 0)
     text:SetText(label)
 
@@ -93,7 +114,7 @@ end
 local function AddSlider(label, dbKey, step, onChange)
     local minV, maxV = ns.limits[dbKey].min, ns.limits[dbKey].max
     local name = "CrosshairsOption" .. dbKey .. "Slider"
-    local slider = CreateFrameWithFallback("Slider", name, panel,
+    local slider = CreateFrameWithFallback("Slider", name, scrollChild,
         "UISliderTemplateWithLabels", "OptionsSliderTemplate")
     Place(slider, 8, 24)
     slider:SetWidth(260)
@@ -131,14 +152,14 @@ end
 -- in Core.lua for why that matters.
 local function AddColorSwatch(label, dbKey, onChange)
     local name = "CrosshairsOption" .. dbKey .. "Swatch"
-    local swatch = CreateFrame("Button", name, panel)
+    local swatch = CreateFrame("Button", name, scrollChild)
     swatch:SetSize(20, 20)
     Place(swatch, 0, 8)
 
     local swatchTexture = swatch:CreateTexture(nil, "OVERLAY")
     swatchTexture:SetAllPoints(true)
 
-    local text = panel:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
+    local text = scrollChild:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
     text:SetPoint("LEFT", swatch, "RIGHT", 8, 0)
     text:SetText(label)
 
@@ -194,7 +215,7 @@ AddCheckbox("Debug mode",
     "Show a cursor-tracking debug dot and print diagnostic messages when settings change.",
     "debugMode", function() ns.SetDebugMode(CrosshairsDB.debugMode) end)
 
-local resetButton = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
+local resetButton = CreateFrame("Button", nil, scrollChild, "UIPanelButtonTemplate")
 Place(resetButton, 0, 24)
 resetButton:SetSize(140, 22)
 resetButton:SetText("Reset to Defaults")
@@ -207,10 +228,29 @@ resetButton:SetScript("OnClick", function()
     ns.Print("settings reset to defaults")
 end)
 
+-- `anchor` is now the reset button, the last thing Place() touched. GetTop/GetBottom
+-- reflect the real, already-resolved layout (font metrics, whichever slider template
+-- resolved, etc.) rather than a guess at each widget's rendered height, so this stays
+-- correct regardless of client version. Falls back to a generous fixed height if the
+-- geometry isn't resolved yet -- notably in the test stub, which doesn't lay out frames.
+local function ResizeScrollChild()
+    if scrollChild.GetTop and anchor.GetBottom then
+        local top, bottom = scrollChild:GetTop(), anchor:GetBottom()
+        if top and bottom then
+            scrollChild:SetHeight((top - bottom) + 24)
+            return
+        end
+    end
+    scrollChild:SetHeight(900)
+end
+
 function panel.RefreshWidgets()
     for _, refresh in ipairs(widgets) do refresh() end
 end
-panel:SetScript("OnShow", panel.RefreshWidgets)
+panel:SetScript("OnShow", function()
+    panel.RefreshWidgets()
+    ResizeScrollChild()
+end)
 
 ns.optionsPanel = panel
 
