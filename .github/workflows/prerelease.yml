@@ -1,11 +1,15 @@
-name: Release
+name: Pre-release
 
 on:
   push:
     tags:
-      # Stable releases only -- v1.2.0-alpha.1 etc. go through prerelease.yml
-      # instead, so the two workflows never both fire on the same tag.
-      - "v[0-9]+.[0-9]+.[0-9]+"
+      # alpha/beta only: packager itself reads "alpha"/"beta" out of the tag
+      # name to decide the GitHub release's prerelease flag (and, later, the
+      # CurseForge release channel), so tags need one of those words in them
+      # to get that treatment. Anything else (e.g. -rc.1) would still build
+      # and publish here, just without that automatic classification.
+      - "v[0-9]+.[0-9]+.[0-9]+-alpha*"
+      - "v[0-9]+.[0-9]+.[0-9]+-beta*"
 
 permissions:
   contents: write
@@ -18,22 +22,17 @@ jobs:
         with:
           fetch-depth: 0
 
+      # No CF_API_KEY here, deliberately, matching release.yml -- this addon
+      # isn't wired up to CurseForge at all yet, and even after it is for
+      # stable releases, this job still won't touch it, since packager only
+      # uploads to a destination when its token env var is present.
       - name: Package and release
         uses: BigWigsMods/packager@v2
         env:
           GITHUB_OAUTH: ${{ secrets.GITHUB_TOKEN }}
-          # Optional. Set these repository secrets to publish automatically;
-          # without them the packager just attaches the zip to the GitHub
-          # release. Publishing to CurseForge would additionally need a
-          # CF_API_KEY secret and ## X-Curse-Project-ID in the .toc; neither
-          # exists, so that path is deliberately not wired up.
           WOWI_API_TOKEN: ${{ secrets.WOWI_API_TOKEN }}
           WAGO_API_TOKEN: ${{ secrets.WAGO_API_TOKEN }}
 
-      # CI's dry-run build verifies layout too, but it skips itself on this
-      # exact commit (see ci.yml) since packager won't double-build a tagged
-      # commit. This is the only place the archive that actually ships gets
-      # checked.
       - name: Verify archive layout
         run: |
           zip=$(ls .release/*.zip)
@@ -46,8 +45,6 @@ jobs:
           unzip -l "$zip" | grep -q 'Crosshairs/Slash.lua'
           unzip -l "$zip" | grep -q 'Crosshairs/CHANGELOG.md'
 
-          # Dev-only tooling; .pkgmeta ignores it, and it should stay ignored.
-          # A bare `!` here would be exempt from set -e and silently not fail.
           if unzip -l "$zip" | grep -q 'Crosshairs/tests/'; then
             echo "tests/ should not ship in the release archive (see .pkgmeta)" >&2
             exit 1

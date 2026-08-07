@@ -34,3 +34,49 @@ jobs:
       # unused locals but not runtime shape errors -- this catches those instead.
       - name: Run tests
         run: lua tests/run_tests.lua
+
+  package:
+    needs: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      # If this push also carries a tag on HEAD (e.g. a release commit pushed
+      # together with its tag), BigWigsMods/packager intentionally no-ops on
+      # the branch push to avoid a duplicate build, leaving no zip behind.
+      # Detect that ourselves so the later steps skip deterministically
+      # instead of racing the tag ref and failing when they lose.
+      - name: Check for pending tag
+        id: check_tag
+        run: echo "tag=$(git tag --points-at HEAD)" >> "$GITHUB_OUTPUT"
+
+      # -d skips uploading, so this builds the real release zip on every push
+      # without publishing it. Packaging breakage surfaces here rather than
+      # at tag time.
+      - name: Package (dry run)
+        if: steps.check_tag.outputs.tag == ''
+        uses: BigWigsMods/packager@v2
+        with:
+          args: -d
+
+      - name: Verify archive layout
+        if: steps.check_tag.outputs.tag == ''
+        run: |
+          zip=$(ls .release/*.zip)
+          unzip -l "$zip"
+          unzip -l "$zip" | grep -q 'Crosshairs/Crosshairs.toc'
+          unzip -l "$zip" | grep -q 'Crosshairs/Core.lua'
+          unzip -l "$zip" | grep -q 'Crosshairs/Circle.lua'
+          unzip -l "$zip" | grep -q 'Crosshairs/Cross.lua'
+          unzip -l "$zip" | grep -q 'Crosshairs/Options.lua'
+          unzip -l "$zip" | grep -q 'Crosshairs/Slash.lua'
+          unzip -l "$zip" | grep -q 'Crosshairs/CHANGELOG.md'
+
+          # Dev-only tooling; .pkgmeta ignores it, and it should stay ignored.
+          # A bare `!` here would be exempt from set -e and silently not fail.
+          if unzip -l "$zip" | grep -q 'Crosshairs/tests/'; then
+            echo "tests/ should not ship in the release archive (see .pkgmeta)" >&2
+            exit 1
+          fi
