@@ -2,6 +2,22 @@
 
 All notable changes to the Crosshairs addon are documented in this file.
 
+## [1.6.0]
+
+Adopts the cross-addon slash command standard (#57).
+
+- Bare `/crosshairs` now opens the options panel instead of printing usage; `options`/`config`/`gui` no longer also dump the full command list after opening it
+- Added `help`, `version` and `reset` (shared with the options panel's "Reset to Defaults" button, so the two can't drift apart)
+- `debug` with no argument now toggles the current state and reports it, instead of falling through to usage; an unrecognised debug value is now rejected instead of silently ignored
+- An unrecognised command now says which word wasn't understood before printing usage
+- Only the command word is lowercased for matching; sub-tokens are lowercased individually where compared, not the whole input up front
+
+## [1.5.2]
+
+- Bump TOC Interface to 120100 for WoW 12.1.0
+- Exclude CHANGELOG.md from the packaged zip
+- Add X-ReleaseNotes with the addon summary and repository link
+
 ## [1.5.1]
 
 Bugfix release.

@@ -278,14 +278,7 @@ local resetButton = CreateFrame("Button", nil, scrollChild, "UIPanelButtonTempla
 Place(resetButton, 0, 24)
 resetButton:SetSize(140, 22)
 resetButton:SetText("Reset to Defaults")
-resetButton:SetScript("OnClick", function()
-    for k, v in pairs(ns.defaults) do CrosshairsDB[k] = v end
-    for _, refresh in ipairs(widgets) do refresh() end
-    ns.BuildCircleLines()
-    ns.ApplyCrossSettings()
-    ns.ApplyCombatState()
-    ns.Print("settings reset to defaults")
-end)
+resetButton:SetScript("OnClick", ns.ResetToDefaults)
 
 -- `anchor` is now the reset button, the last thing Place() touched. GetTop/GetBottom
 -- reflect the real, already-resolved layout (font metrics, whichever slider template

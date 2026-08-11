@@ -103,6 +103,19 @@ local function ApplyDefaults()
 end
 ns.ApplyDefaults = ApplyDefaults
 
+-- Restores every setting to ns.defaults, refreshes the options panel and every
+-- feature that reads a setting at apply time, and confirms it happened. Shared by
+-- the options panel's "Reset to Defaults" button and "/crosshairs reset" so the
+-- two can't drift out of sync.
+function ns.ResetToDefaults()
+    for k, v in pairs(defaults) do CrosshairsDB[k] = v end
+    if ns.optionsPanel and ns.optionsPanel.RefreshWidgets then ns.optionsPanel.RefreshWidgets() end
+    ns.BuildCircleLines()
+    ns.ApplyCrossSettings()
+    ns.ApplyCombatState()
+    ns.Print("settings reset to defaults")
+end
+
 -- Debug cursor dot: shows a marker at the tracked cursor position when debug mode is enabled
 -- Not exported on `ns`: visibility is owned by ns.SetDebugMode below, and handing the
 -- frame out is what let callers Show() it directly. It keeps its global name so it can

@@ -16,11 +16,17 @@ Usage
 
 Options Panel
 -------------
-Open the Game Menu (Esc) > Options > AddOns > Crosshairs to configure everything with checkboxes, sliders and colour swatches instead of slash commands: visibility in/out of combat for the cross and circle, cross size/thickness, circle radius/segments/line thickness, cross and circle colour, debug mode, and a "Reset to Defaults" button. `/crosshairs options` (or `/ch options`) opens this panel directly.
+Open the Game Menu (Esc) > Options > AddOns > Crosshairs to configure everything with checkboxes, sliders and colour swatches instead of slash commands: visibility in/out of combat for the cross and circle, cross size/thickness, circle radius/segments/line thickness, cross and circle colour, debug mode, and a "Reset to Defaults" button. `/crosshairs` on its own (or `options`/`config`/`gui`) opens this panel directly.
 
 Commands
 --------
+(alias: `/ch`)
+
+- `/crosshairs` - open the graphical options panel (also: `options`, `config`, `gui`)
 - `/crosshairs status` - show current settings
+- `/crosshairs version` - show the addon version
+- `/crosshairs reset` - restore settings to defaults
+- `/crosshairs help` - list all commands
 - `/crosshairs set <cross|circle> <in|out> <on|off>` - enable/disable the cross or circle while in or out of combat
   - Example: `/crosshairs set circle in on` (enable circle while in combat)
 - `/crosshairs set segments <n>` - set circle segment count, 8-256 (more => smoother)
@@ -32,8 +38,7 @@ Commands
 Numeric values are clamped to the ranges above and rounded to whole numbers, matching the options sliders; the command tells you when it adjusts a value.
 - `/crosshairs off` - hide both the cross and circle until re-enabled
 - `/crosshairs on` - restore visibility based on current settings
-- `/crosshairs debug on|off` - show/hide cursor debug dot (enables detailed logs)
-- `/crosshairs options` - open the graphical options panel and show command help (alias: `/ch`)
+- `/crosshairs debug [on|off]` - toggle or set the cursor debug dot and detailed logging
 
 Release notes are in [CHANGELOG.md](CHANGELOG.md).
 
