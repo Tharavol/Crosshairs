@@ -43,9 +43,12 @@ jobs:
           unzip -l "$zip" | grep -q 'Crosshairs/Cross.lua'
           unzip -l "$zip" | grep -q 'Crosshairs/Options.lua'
           unzip -l "$zip" | grep -q 'Crosshairs/Slash.lua'
-          unzip -l "$zip" | grep -q 'Crosshairs/CHANGELOG.md'
 
           if unzip -l "$zip" | grep -q 'Crosshairs/tests/'; then
             echo "tests/ should not ship in the release archive (see .pkgmeta)" >&2
+            exit 1
+          fi
+          if unzip -l "$zip" | grep -q 'Crosshairs/CHANGELOG.md'; then
+            echo "CHANGELOG.md should not ship in the release archive (see .pkgmeta)" >&2
             exit 1
           fi
