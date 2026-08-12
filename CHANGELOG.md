@@ -2,6 +2,10 @@
 
 All notable changes to the Crosshairs addon are documented in this file.
 
+## [1.6.1]
+
+- Added an icon (`Ability_Hisek_Aim`) for the AddOns list and AddonCompartment button
+
 ## [1.6.0]
 
 Adopts the cross-addon slash command standard (#57).

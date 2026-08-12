@@ -3,6 +3,7 @@
 ## Notes: Draws a crosshair at the center of the screen and a cursor circle that tracks cast and global cooldown progress
 ## Author: Tharavol, Claude, GitHub Copilot
 ## Version: @project-version@
+## IconTexture: Interface\Icons\Ability_Hisek_Aim
 ## X-License: GPL-3.0
 ## SavedVariables: CrosshairsDB
 
