@@ -115,8 +115,13 @@ for _, tocPath in ipairs(tocs) do
 
         if not interface then
             fail("%s: no `## Interface:` line", tocPath)
-        elseif not interface:match("^%d%d%d%d%d%d?$") then
-            fail("%s: `## Interface: %s` is not a 5- or 6-digit number", tocPath, interface)
+        else
+            for value in (interface .. ","):gmatch("%s*([^,]-)%s*,") do
+                if not value:match("^%d%d%d%d%d%d?$") then
+                    fail("%s: `## Interface: %s`: %q is not a 5- or 6-digit number",
+                        tocPath, interface, value)
+                end
+            end
         end
 
         if not version or version == "" then

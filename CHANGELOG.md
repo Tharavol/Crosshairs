@@ -4,9 +4,13 @@ All notable changes to the Crosshairs addon are documented in this file.
 
 ## [Unreleased]
 
+### Added
+- Loads on World of Warcraft: Forever as well as retail: the TOC now lists Interface 16001. Forever has no global cooldown spell, so there the cursor circle fills for casts only ([#62](https://github.com/Tharavol/Crosshairs/issues/62)).
+
 ### Internal
 - Removed fallbacks for APIs and templates the supported clients always have: the legacy `GetSpellCooldown`, `GetAddOnMetadata` and `InterfaceOptions_*` paths, and the template fallback chain with hand-built checkbox/slider visuals in the options panel ([#59](https://github.com/Tharavol/Crosshairs/issues/59))
 - Trimmed comments that recounted past bugs, and dropped the `X-ReleaseNotes` TOC line, which README already covers ([#60](https://github.com/Tharavol/Crosshairs/issues/60))
+- `scripts/validate-toc.lua` accepts a comma-separated Interface list. The daily TOC Interface check now tracks both the retail and WoW Forever versions, so its bump no longer rewrites the Interface line to retail only ([#63](https://github.com/Tharavol/Crosshairs/issues/63)).
 
 ## [1.6.1]
 

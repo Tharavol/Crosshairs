@@ -1,4 +1,4 @@
-## Interface: 120105
+## Interface: 120105, 16001
 ## Title: Crosshairs
 ## Notes: Draws a crosshair at the center of the screen and a cursor circle that tracks cast and global cooldown progress
 ## Author: Tharavol, Claude, GitHub Copilot
