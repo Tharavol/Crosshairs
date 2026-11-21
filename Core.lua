@@ -7,10 +7,7 @@
 local ADDON_NAME, ns = ...
 ns.ADDON_NAME = ADDON_NAME
 
--- Chat-output helper: every print() site retyped its own "Crosshairs: " prefix, and some
--- (status) had none at all. Joins arguments the same way print() does, so callers convert
--- by swapping the function name, and gives the addon's output a single, coloured, greppable
--- source marker in a busy chat frame.
+-- print() with the addon's coloured prefix.
 local PREFIX = "|cff6699ffCrosshairs|r: "
 function ns.Print(...)
     local parts = {}
@@ -20,15 +17,11 @@ function ns.Print(...)
     DEFAULT_CHAT_FRAME:AddMessage(PREFIX .. table.concat(parts, " "))
 end
 
--- Returns a display-ready version string with exactly one leading "v".
--- The packager substitutes `@project-version@` in the TOC with the release tag, which
--- already carries a "v" (e.g. "v1.2.4"), so callers must not prefix one themselves --
--- that is how "Crosshairs vv1.2.3 loaded" reached the login message. Running from a git
--- clone leaves the token unsubstituted; report that as "dev" rather than printing it raw.
+-- Version with exactly one leading "v" (release tags already carry one). An unsubstituted
+-- version token (running from a git checkout) reports as "dev".
 function ns.GetAddonVersion()
-    local getMeta = (C_AddOns and C_AddOns.GetAddOnMetadata) or GetAddOnMetadata
-    local version = getMeta and getMeta(ADDON_NAME, "Version")
-    if type(version) ~= "string" or version == "" or version:match("^@.*@$") then
+    local version = C_AddOns.GetAddOnMetadata(ADDON_NAME, "Version")
+    if not version or version == "" or version:match("^@.*@$") then
         return "dev"
     end
     if not version:match("^[vV]") then
@@ -44,30 +37,21 @@ ns.defaults = {
     crossOutOfCombat = true,
     circleInCombat = false,
     circleOutOfCombat = true,
-    -- 28, not 40: Circle.lua used to multiply this by a hidden 0.7 scale before drawing,
-    -- so the slider labelled "Base radius: 40" actually drew a 28px radius (#7). The
-    -- scale is gone; this is now the radius the slider says it is. Existing saved values
-    -- above the default see a one-time increase to match -- accepted rather than migrated.
-    circleBaseRadius = 28,
+    circleBaseRadius = 28, -- pixels, as labelled (#7)
     circleSegments = 200, -- more => smoother; kept under the cap in ns.limits below
     circleLineThickness = 1,
     -- cross appearance defaults
     crossSize = 50,       -- leg length in pixels
     crossThickness = 2,   -- thickness in pixels
-    -- Colours are tables rather than flat keys, per #16. Always replace this table
-    -- wholesale when changing a colour (Options.lua's swatch does) rather than mutating
-    -- its fields in place -- ApplyDefaults below copies the reference, not a deep copy,
-    -- so an in-place mutation would corrupt this default too.
+    -- Colour tables are shared by reference with CrosshairsDB (ApplyDefaults doesn't deep
+    -- copy), so a colour change must store a new table, never mutate this one (#16).
     crossColor = { r = 0.5, g = 0.05, b = 0.05, a = 1 },  -- dark red
     circleColor = { r = 0.6, g = 0.8, b = 1, a = 1 },     -- light blue
 }
 local defaults = ns.defaults
 
--- Bounds for every numeric setting, in one place so the options sliders and the slash
--- setters cannot disagree about them. circleSegments matters most: each segment is its
--- own texture redrawn every ~30ms, so an unclamped `/ch set segments 100000` hangs the
--- client, and because the value is saved it hangs again on every subsequent login. 256
--- already looks smooth, which is what makes it a cheap cap to accept.
+-- Bounds shared by the sliders and slash setters. The circleSegments cap matters most:
+-- every segment is a texture redrawn each tick, and a huge saved value hangs every login.
 ns.limits = {
     circleSegments      = { min = 8, max = 256 },
     circleBaseRadius    = { min = 4, max = 150 },
@@ -76,10 +60,8 @@ ns.limits = {
     crossThickness      = { min = 1, max = 30 },
 }
 
--- Clamps a value into the range registered for `key` and rounds it to a whole number,
--- matching the step-1 sliders. Returns the usable number plus whether it differs from
--- what was asked for, so callers can tell the user their input was adjusted.
--- Returns nil for input that isn't a number at all.
+-- Clamps and rounds a value into `key`'s range. Returns the value and whether it was
+-- adjusted, or nil for non-numeric input.
 function ns.ClampSetting(key, value)
     local number = tonumber(value)
     if not number then return nil end
@@ -89,10 +71,7 @@ function ns.ClampSetting(key, value)
     return clamped, clamped ~= number
 end
 
--- Fills in any missing setting and pulls saved values back inside ns.limits. The clamp
--- runs on load as well as on input: a profile saved before the setters were bounded can
--- still hold a value that would hang the client, and it has to be repaired before
--- BuildCircleLines reads it.
+-- Fills missing settings and clamps saved values, which may predate the limits.
 local function ApplyDefaults()
     for k, v in pairs(defaults) do
         if CrosshairsDB[k] == nil then CrosshairsDB[k] = v end
@@ -103,23 +82,17 @@ local function ApplyDefaults()
 end
 ns.ApplyDefaults = ApplyDefaults
 
--- Restores every setting to ns.defaults, refreshes the options panel and every
--- feature that reads a setting at apply time, and confirms it happened. Shared by
--- the options panel's "Reset to Defaults" button and "/crosshairs reset" so the
--- two can't drift out of sync.
+-- Shared by the options panel's reset button and "/crosshairs reset".
 function ns.ResetToDefaults()
     for k, v in pairs(defaults) do CrosshairsDB[k] = v end
-    if ns.optionsPanel and ns.optionsPanel.RefreshWidgets then ns.optionsPanel.RefreshWidgets() end
+    ns.optionsPanel.RefreshWidgets()
     ns.BuildCircleLines()
     ns.ApplyCrossSettings()
     ns.ApplyCombatState()
     ns.Print("settings reset to defaults")
 end
 
--- Debug cursor dot: shows a marker at the tracked cursor position when debug mode is enabled
--- Not exported on `ns`: visibility is owned by ns.SetDebugMode below, and handing the
--- frame out is what let callers Show() it directly. It keeps its global name so it can
--- still be inspected in-game via /framestack.
+-- Debug dot at the tracked cursor position. Only ns.SetDebugMode shows or hides it.
 local debugDot = CreateFrame("Frame", "CrosshairsDebugDot", UIParent)
 debugDot:SetSize(8, 8)
 local ddTex = debugDot:CreateTexture(nil, "OVERLAY")
@@ -134,15 +107,8 @@ local function TrackCursor(self)
     self:SetPoint("CENTER", UIParent, "BOTTOMLEFT", x / scale, y / scale)
 end
 
--- Attaches the tracking script only while debug mode is on, and is the single place that
--- turns the setting into visible state -- the slash command, the options checkbox and
--- login all route through here.
---
--- The previous version installed OnUpdate permanently and had it poll the flag to show or
--- hide the frame, which cannot work: WoW does not run OnUpdate on a hidden frame, so once
--- hidden the dot could never show itself again. It appeared at all only because the two
--- toggles called Show() directly, which meant a saved `debugMode = true` was dropped on
--- every /reload until you toggled it off and on again.
+-- The single place debug mode becomes visible state. OnUpdate is attached only while
+-- shown, since a hidden frame gets no OnUpdate with which to show itself again.
 function ns.SetDebugMode(enabled)
     CrosshairsDB.debugMode = enabled and true or false
     if CrosshairsDB.debugMode then
@@ -155,32 +121,17 @@ function ns.SetDebugMode(enabled)
     end
 end
 
--- Visibility control based on combat state and settings
 function ns.ApplyCombatState()
-    local crossFrame = ns.crossFrame
-    local circleFrame = ns.circleFrame
-    if CrosshairsDB.forceOff then
-        if crossFrame then crossFrame:Hide() end
-        if circleFrame then circleFrame:Hide() end
-        return
-    end
-
-    local inCombat = InCombatLockdown() or false
+    local db = CrosshairsDB
+    local inCombat = InCombatLockdown()
+    local showCross, showCircle
     if inCombat then
-        if crossFrame then
-            if CrosshairsDB.crossInCombat then crossFrame:Show() else crossFrame:Hide() end
-        end
-        if circleFrame then
-            if CrosshairsDB.circleInCombat then circleFrame:Show() else circleFrame:Hide() end
-        end
+        showCross, showCircle = db.crossInCombat, db.circleInCombat
     else
-        if crossFrame then
-            if CrosshairsDB.crossOutOfCombat then crossFrame:Show() else crossFrame:Hide() end
-        end
-        if circleFrame then
-            if CrosshairsDB.circleOutOfCombat then circleFrame:Show() else circleFrame:Hide() end
-        end
+        showCross, showCircle = db.crossOutOfCombat, db.circleOutOfCombat
     end
+    ns.crossFrame:SetShown(showCross and not db.forceOff)
+    ns.circleFrame:SetShown(showCircle and not db.forceOff)
 end
 
 -- Event frame for login, combat events, and addon load
@@ -191,14 +142,14 @@ eventFrame:RegisterEvent("PLAYER_REGEN_DISABLED")
 eventFrame:RegisterEvent("PLAYER_REGEN_ENABLED")
 eventFrame:SetScript("OnEvent", function(_, event, arg1)
     if event == "ADDON_LOADED" then
-        if (tostring(arg1) or ""):lower() ~= ADDON_NAME:lower() then return end
+        if arg1 ~= ADDON_NAME then return end
         ApplyDefaults()
-        if ns.BuildCircleLines then ns.BuildCircleLines() end
-        if ns.ApplyCrossSettings then ns.ApplyCrossSettings() end
+        ns.BuildCircleLines()
+        ns.ApplyCrossSettings()
         ns.ApplyCombatState()
-        if ns.optionsPanel and ns.optionsPanel.RefreshWidgets then ns.optionsPanel.RefreshWidgets() end
+        ns.optionsPanel.RefreshWidgets()
     elseif event == "PLAYER_LOGIN" then
-        if ns.BuildCircleLines then ns.BuildCircleLines() end
+        ns.BuildCircleLines()
         ns.ApplyCombatState()
         ns.SetDebugMode(CrosshairsDB.debugMode) -- restore the saved state across /reload
         ns.Print(ns.GetAddonVersion() .. " loaded. Type /crosshairs options to configure.")

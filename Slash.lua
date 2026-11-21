@@ -11,10 +11,7 @@ local function Range(key)
     return limit.min .. "-" .. limit.max
 end
 
--- Every "set <command> <n>" setting in one table -- DB key, display label (matches the
--- options panel's slider label), usage text, and the apply callback to run after a
--- change. Adding a setting means adding one entry here; the setter, status output and
--- PrintUsage are all derived from it, so they can't drift out of sync with each other.
+-- Every "set <command> <n>" setting; the setter, status output and usage derive from it.
 local NUMERIC_SETTINGS = {
     {
         command = "segments", key = "circleSegments",
@@ -68,18 +65,12 @@ for _, entry in ipairs(VISIBILITY_SETTINGS) do
     VISIBILITY_SETTINGS_BY_COMMAND[entry.category][entry.when] = entry
 end
 
--- The options panel only pulls fresh values from CrosshairsDB when it's shown (see
--- Options.lua's OnShow), so a slash command run while the panel is already open left it
--- displaying stale checkboxes/sliders until closed and reopened. Every setter below that
--- touches a value the panel also displays calls this afterward to keep the two in sync.
+-- The panel only reads CrosshairsDB on show, so setters refresh it in case it is open.
 local function RefreshOptionsPanel()
-    if ns.optionsPanel and ns.optionsPanel.RefreshWidgets then
-        ns.optionsPanel.RefreshWidgets()
-    end
+    ns.optionsPanel.RefreshWidgets()
 end
 
--- Applies a clamped numeric setting and says so when the value was adjusted, since
--- silently storing something other than what was typed reads as the command failing.
+-- Applies a clamped numeric setting and says when the value was adjusted.
 local function SetNumeric(entry, input)
     local value, clamped = ns.ClampSetting(entry.key, input)
     CrosshairsDB[entry.key] = value
@@ -103,20 +94,12 @@ local function PrintStatus()
 end
 
 local function OpenOptionsPanel()
-    if Settings and Settings.OpenToCategory and ns.optionsCategoryID then
-        -- Blizzard's API sometimes needs to be called twice to focus correctly on first open
-        Settings.OpenToCategory(ns.optionsCategoryID)
-        Settings.OpenToCategory(ns.optionsCategoryID)
-    elseif InterfaceOptionsFrame_OpenToCategory and ns.optionsPanel then
-        InterfaceOptionsFrame_OpenToCategory(ns.optionsPanel)
-        InterfaceOptionsFrame_OpenToCategory(ns.optionsPanel)
-    end
+    -- Called twice: the first call on a fresh session doesn't always focus the category.
+    Settings.OpenToCategory(ns.optionsCategoryID)
+    Settings.OpenToCategory(ns.optionsCategoryID)
 end
 
--- Built once at load, and reused two ways: as the "set" command's own help lines
--- below, and as the scoped usage printed when "set" is given too few arguments to
--- resolve (e.g. "/ch set segments" with no value) -- distinct from the generic
--- "unknown command" case (S4), since "set" itself was a recognised word.
+-- Help lines for "set", also printed as usage when "set" has too few arguments.
 local SET_HELP = {
     "/crosshairs set <cross|circle> <in|out> <on|off> - set visibility in/out of combat " ..
         "(also accepts true|false)",
@@ -130,10 +113,7 @@ end
 local function HandleSet(args)
     local what = args[2] and args[2]:lower()
 
-    -- Checked before the visibility family below (which used to come first and,
-    -- because it only required three more words, swallowed any numeric setter
-    -- invoked with a trailing word -- e.g. "set segments 200 please" reported
-    -- "unknown setting: segments" instead of applying it.
+    -- Numeric setters first, so "set segments 200 extra" isn't taken as a visibility set.
     local numeric = NUMERIC_SETTINGS_BY_COMMAND[what]
     if numeric and tonumber(args[3]) then
         SetNumeric(numeric, args[3])
@@ -150,9 +130,7 @@ local function HandleSet(args)
                 ns.Print("unknown option: " .. args[3])
                 return
             end
-            -- `when` was already validated above; `value` wasn't, so any typo (e.g.
-            -- "onn") silently evaluated to false and reported success as if it had
-            -- worked (#52). Reject anything but on/off/true/false instead.
+            -- Reject anything but on/off/true/false rather than treating a typo as off (#52).
             local enabled
             if value == "on" or value == "true" then
                 enabled = true
@@ -186,8 +164,7 @@ local function HandleDebug(args)
     elseif value == "off" then
         enabled = false
     elseif not value then
-        -- Bare `debug` toggles and reports the new state (S8), same as an explicit
-        -- on/off rather than a blind flip nobody can predict the result of.
+        -- Bare `debug` toggles and reports the new state (S8).
         enabled = not CrosshairsDB.debugMode
     else
         ns.Print("unknown value: " .. args[2] .. " (expected on|off)")
@@ -198,12 +175,8 @@ local function HandleDebug(args)
     ns.Print("debug mode set to", enabled and "on" or "off")
 end
 
--- Table of { name, help, handler }, so PrintUsage is derived from the same data
--- Dispatch matches against instead of a second hand-maintained list that could
--- drift out of sync (S13; matches ShoppingConverter/Commands.lua's COMMANDS).
--- "", "config" and "gui" are silent aliases of "options" (S5): each opens the
--- panel but carries no help text of its own, so usage doesn't repeat the same
--- line four times.
+-- { name, help, handler }: Dispatch and PrintUsage share this list (S13). "", "config"
+-- and "gui" are silent aliases of "options" with no help line of their own (S5).
 local COMMANDS = {
     {name = "", help = {}, handler = OpenOptionsPanel},
     {
@@ -270,10 +243,7 @@ SlashCmdList["CROSSHAIRS"] = function(msg)
     local args = {}
     for word in string.gmatch(msg or "", "%S+") do table.insert(args, word) end
 
-    -- Only the command word is lowercased for matching (S11); "set"'s own
-    -- sub-tokens are lowercased individually inside HandleSet, since a blanket
-    -- lower() on the whole message is the pattern that corrupts the first
-    -- case-sensitive argument this addon ever grows.
+    -- Only the command word is lowercased (S11); later arguments may be case-sensitive.
     local cmd = args[1] and args[1]:lower() or ""
 
     for _, entry in ipairs(COMMANDS) do

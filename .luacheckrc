@@ -27,12 +27,11 @@ read_globals = {
     -- Frame / UI globals
     "CreateFrame", "UIParent", "GetCursorPosition", "DEFAULT_CHAT_FRAME",
 
-    -- Settings API (Settings is retail; the InterfaceOptions_* pair is the
-    -- pre-10.0 fallback the addon still branches on)
-    "Settings", "InterfaceOptions_AddCategory", "InterfaceOptionsFrame_OpenToCategory",
+    -- Settings API
+    "Settings",
     "ColorPickerFrame", "GameTooltip", "GameTooltip_Hide",
 
     -- Player / spell state
-    "GetAddOnMetadata", "GetSpellCooldown", "GetTime", "InCombatLockdown",
+    "GetTime", "InCombatLockdown",
     "IsAltKeyDown", "UnitCastingInfo", "UnitChannelInfo",
 }

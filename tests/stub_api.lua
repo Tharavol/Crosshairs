@@ -39,6 +39,9 @@ MakeWidget = function(kind, name)
     function w:Show() self._shown = true end
     function w:Hide() self._shown = false end
     function w:IsShown() return self._shown and true or false end
+    function w:SetShown(shown) self._shown = shown and true or false end
+    function w:GetTop() return nil end
+    function w:GetBottom() return nil end
     function w:SetColorTexture(r, g, b, a) self._color = { r, g, b, a } end
     function w:SetAlpha(alpha) self._alpha = alpha end
     function w:GetAlpha() return self._alpha end
@@ -83,32 +86,20 @@ end
 -- controllable API state (api, e.g. api.combat = true), and every frame CreateFrame
 -- produces (frames) -- since the addon's event frame is anonymous, tests find it by
 -- which events it registered rather than by name.
--- blockedTemplates: optional set ({ TemplateName = true, ... }) of template names that
--- should fail to resolve, the way a template Blizzard has removed does on a real client --
--- lets tests exercise CreateFrameWithFallback's last-resort (untemplated) path.
-local function NewEnv(blockedTemplates)
+local function NewEnv()
     local frames = {}
 
     local function CreateFrame(frameType, name, parent, template)
-        if template and blockedTemplates and blockedTemplates[template] then
-            error("template not found: " .. template)
-        end
         local f = MakeWidget(frameType, name)
         f._parent = parent
         f.template = template
         table.insert(frames, f)
         if name then _G[name] = f end
-        -- These sub-regions only exist on a real client when a template that defines them
-        -- resolved -- an untemplated frame (this stub's/CreateFrameWithFallback's
-        -- last-resort path) has none, so only fabricate them here when `template` is set,
-        -- letting tests exercise the hand-built-label fallback the same way a client with
-        -- no working template does.
+        -- Mimics the templates the addon uses: UISliderTemplateWithLabels's Low/High/Text.
         if frameType == "CheckButton" and template then
             f.Text = MakeWidget("FontString", nil)
         end
         if frameType == "Slider" and template then
-            -- Mimics UISliderTemplateWithLabels: Low/High/Text as direct parentKey
-            -- fields, present whether or not the slider has a name.
             f.Low = MakeWidget("FontString", name and (name .. "Low"))
             f.High = MakeWidget("FontString", name and (name .. "High"))
             f.Text = MakeWidget("FontString", name and (name .. "Text"))
@@ -150,21 +141,18 @@ local function NewEnv(blockedTemplates)
         if not api.channeling then return nil end
         return api.channeling.name, nil, nil, api.channeling.startTimeMS, api.channeling.endTimeMS
     end
-    env.GetSpellCooldown = function()
-        if not api.gcd then return 0, 0, 0 end
-        return api.gcd.startTime, api.gcd.duration, api.gcd.isEnabled and 1 or 0
-    end
-    env.GetAddOnMetadata = function(_, field)
-        if field == "Version" then return api.addonVersion end
-        return nil
-    end
     env.C_Spell = {
         GetSpellCooldown = function()
             if not api.gcd then return { startTime = 0, duration = 0, isEnabled = false } end
             return { startTime = api.gcd.startTime, duration = api.gcd.duration, isEnabled = api.gcd.isEnabled }
         end,
     }
-    env.C_AddOns = { GetAddOnMetadata = env.GetAddOnMetadata }
+    env.C_AddOns = {
+        GetAddOnMetadata = function(_, field)
+            if field == "Version" then return api.addonVersion end
+            return nil
+        end,
+    }
     env.DEFAULT_CHAT_FRAME = {
         AddMessage = function(_, msg) table.insert(api.chatLog, msg) end,
     }
@@ -218,9 +206,9 @@ end
 
 -- Loads the addon fresh: a new stub environment and a new shared `ns` table, exactly
 -- like WoW handing each file the same addon table via `...`. Returns everything a test
--- needs to drive and inspect it. `opts.blockedTemplates` is forwarded to NewEnv, see there.
-function M.LoadAddon(rootDir, tocPath, opts)
-    local env, api, frames = NewEnv(opts and opts.blockedTemplates)
+-- needs to drive and inspect it.
+function M.LoadAddon(rootDir, tocPath)
+    local env, api, frames = NewEnv()
     local ns = {}
     for _, file in ipairs(TocFileList(tocPath)) do
         local chunk = assert(loadfile(rootDir .. "/" .. file))

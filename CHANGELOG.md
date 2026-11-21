@@ -2,6 +2,12 @@
 
 All notable changes to the Crosshairs addon are documented in this file.
 
+## [Unreleased]
+
+### Internal
+- Removed fallbacks for APIs and templates the supported clients always have: the legacy `GetSpellCooldown`, `GetAddOnMetadata` and `InterfaceOptions_*` paths, and the template fallback chain with hand-built checkbox/slider visuals in the options panel ([#59](https://github.com/Tharavol/Crosshairs/issues/59))
+- Trimmed comments that recounted past bugs, and dropped the `X-ReleaseNotes` TOC line, which README already covers ([#60](https://github.com/Tharavol/Crosshairs/issues/60))
+
 ## [1.6.1]
 
 - Added an icon (`Ability_Hisek_Aim`) for the AddOns list and AddonCompartment button

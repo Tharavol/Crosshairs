@@ -6,20 +6,13 @@
 local _, ns = ...
 local defaults = ns.defaults
 
--- 61304 is a placeholder spell every class/spec can query; GetSpellCooldown on it reports
--- the shared global cooldown rather than any particular ability's cooldown.
+-- Spell 61304 is the global cooldown itself; its cooldown is the current GCD.
 local GCD_SPELL_ID = 61304
 
--- How far the circle expands while Alt is held (updateCirclePositions's radius multiplier).
-local ALT_EXPAND_FACTOR = 1.8
--- Extra headroom on top of the diameter when sizing circleFrame, so the outermost
--- segment's own width doesn't get clipped at the frame edge.
-local FRAME_SIZE_PADDING = 8
--- How often segment appearance (geometry + alpha) is recomputed; cursor tracking itself
--- runs every frame regardless, see the OnUpdate comment below.
-local UPDATE_THROTTLE_SECONDS = 0.03
--- Alpha range a segment fades across as cast/GCD progress reaches it, and how much of the
--- circle (as a fraction of segment count) that fade spans at most.
+local ALT_EXPAND_FACTOR = 1.8      -- radius multiplier while Alt is held
+local FRAME_SIZE_PADDING = 8       -- keeps the outermost segment from clipping at the frame edge
+local UPDATE_THROTTLE_SECONDS = 0.03 -- segment redraw rate; cursor tracking runs every frame
+-- Alpha range a segment fades across as progress reaches it, and the widest fade span.
 local MIN_ALPHA, MAX_ALPHA = 0.08, 1.00
 local MAX_FADE_RANGE = 0.35
 
@@ -31,36 +24,24 @@ ns.circleFrame = circleFrame
 
 local circleTextures = {}
 
--- cos/sin per segment, indexed the same as circleTextures. Segment angle only depends on
--- the segment count, so this is computed once on rebuild instead of every tick.
+-- cos/sin per segment, computed on rebuild rather than every tick.
 local segmentAngles = {}
 
--- The radius/count updateCirclePositions last anchored textures at, so a tick where
--- neither changed can skip SetPoint entirely -- the frame itself still tracks the cursor
--- every frame (see OnUpdate below), so segments don't need re-anchoring to follow it.
+-- Last anchored radius/count; segments are re-anchored only when either changes.
 local lastGeometryN, lastGeometryRadius
 
--- Segments are small square textures; size scales with the configured line thickness.
 local function GetSegmentSize(thickness)
     return math.max(2, math.min(10, math.floor(math.max(1, thickness) * 2)))
 end
 
--- Defers to ns.limits rather than carrying its own floor, so this file can't disagree
--- with the sliders and slash setters about how few segments are allowed. The DB is
--- already clamped on load and on every change, so this only bites if something writes
--- CrosshairsDB directly.
 local function GetSegmentCount()
     return ns.ClampSetting("circleSegments", CrosshairsDB.circleSegments) or defaults.circleSegments
 end
 
--- Shared by BuildCircleLines and updateCirclePositions so the two can't drift the way the
--- segment-size formulas did in 1.2.2 -- there is exactly one place a segment texture gets
--- created.
 local function AcquireTexture(i)
     local tex = circleTextures[i]
     if not tex then
-        tex = circleFrame:CreateTexture(nil, "OVERLAY")
-        if tex.SetDrawLayer then tex:SetDrawLayer("ARTWORK", 0) end
+        tex = circleFrame:CreateTexture(nil, "ARTWORK")
         circleTextures[i] = tex
     end
     return tex
@@ -73,8 +54,7 @@ local function BuildCircleLines()
     for i = 1, n do
         local tex = AcquireTexture(i)
         tex:SetSize(segSize, segSize)
-        -- Colour is set once here; only alpha varies per tick, in updateCirclePositions,
-        -- via SetAlpha -- which multiplies on top of this colour's own alpha channel.
+        -- Colour is set here once; ticks only change SetAlpha, which multiplies on top.
         local color = CrosshairsDB.circleColor or defaults.circleColor
         tex:SetColorTexture(color.r, color.g, color.b, color.a)
         tex:Show()
@@ -82,10 +62,8 @@ local function BuildCircleLines()
         segmentAngles[i] = { cos = math.cos(angle), sin = math.sin(angle) }
     end
     for i = n + 1, #circleTextures do
-        if circleTextures[i] then circleTextures[i]:Hide() end
+        circleTextures[i]:Hide()
     end
-    -- Geometry just changed under whatever radius the next tick reads; force it to
-    -- re-anchor every segment instead of trusting a stale lastGeometryRadius match.
     lastGeometryN, lastGeometryRadius = nil, nil
     if CrosshairsDB.debugMode then
         ns.Print("circle rebuilt with", n, "segments, segment size", segSize)
@@ -105,31 +83,15 @@ local function GetActiveCastFraction()
     return nil
 end
 
--- Reads the global cooldown across both API generations. Retail 11.0+ replaced the
--- `startTime, duration, enabled` tuple with a single info table, so the old call put a
--- table in `startTime` and nil in the rest: the guard failed on every call and the
--- circle silently never tracked the GCD, only actual casts. No Lua error was raised,
--- which is why it went unnoticed.
 local function GetGCDFraction()
-    local startTime, duration
-    if C_Spell and C_Spell.GetSpellCooldown then
-        local info = C_Spell.GetSpellCooldown(GCD_SPELL_ID)
-        -- isEnabled false means the cooldown shouldn't be displayed yet; absent on
-        -- some paths, so only an explicit false suppresses it.
-        if info and info.isEnabled ~= false then
-            startTime, duration = info.startTime, info.duration
-        end
-    elseif type(GetSpellCooldown) == "function" then
-        local enabled
-        startTime, duration, enabled = GetSpellCooldown(GCD_SPELL_ID)
-        if enabled == 0 then return nil end
+    local info = C_Spell.GetSpellCooldown(GCD_SPELL_ID)
+    -- Only an explicit isEnabled == false suppresses it; the field is absent on some paths.
+    if not info or info.isEnabled == false or info.startTime <= 0 or info.duration <= 0 then
+        return nil
     end
-
-    if startTime and duration and startTime > 0 and duration > 0 then
-        local elapsed = GetTime() - startTime
-        if elapsed >= 0 and elapsed <= duration then
-            return math.min(1, math.max(0, elapsed / duration))
-        end
+    local elapsed = GetTime() - info.startTime
+    if elapsed >= 0 and elapsed <= info.duration then
+        return elapsed / info.duration
     end
     return nil
 end
@@ -138,13 +100,10 @@ local function GetCircleProgress()
     return GetActiveCastFraction() or GetGCDFraction() or 0
 end
 
--- Runs every throttled tick: geometry (SetPoint) only when radius or segment count
--- changed since last time, alpha (SetAlpha, not SetColorTexture -- colour is fixed at
--- build time) always, since progress can move every tick during a cast.
+-- Re-anchors segments only when geometry changed; alpha is updated every tick.
 local function updateCirclePositions(radius, progress)
     local n = GetSegmentCount()
-    local minAlpha = MIN_ALPHA
-    local maxAlpha = MAX_ALPHA
+    local minAlpha, maxAlpha = MIN_ALPHA, MAX_ALPHA
     local fadeRange = math.min(10 / n, MAX_FADE_RANGE)
 
     local geometryChanged = n ~= lastGeometryN or radius ~= lastGeometryRadius
@@ -173,10 +132,8 @@ local function updateCirclePositions(radius, progress)
     end
 end
 
--- Cursor tracking (one SetPoint on the frame) runs every frame -- it used to share the
--- 30ms throttle below, which is why the circle visibly trailed the hardware cursor.
--- Segment appearance work stays throttled, since redrawing 200+ segments doesn't need
--- to happen faster than ~33x/sec.
+-- Cursor tracking runs every frame so the circle doesn't trail the cursor; segment
+-- redraws are throttled.
 local updateTimer = 0
 circleFrame:SetScript("OnUpdate", function(self, elapsed)
     local x, y = GetCursorPosition()
