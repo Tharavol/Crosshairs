@@ -2,7 +2,7 @@
 
 All notable changes to the Crosshairs addon are documented in this file.
 
-## [Unreleased]
+## [1.7.0]
 
 ### Added
 - Loads on World of Warcraft: Forever as well as retail: the TOC now lists Interface 16001. Forever has no global cooldown spell, so there the cursor circle fills for casts only ([#62](https://github.com/Tharavol/Crosshairs/issues/62)).
