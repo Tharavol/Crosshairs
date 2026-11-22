@@ -72,7 +72,7 @@ users actually see.
 - Modernised the options panel's checkbox and slider templates (`UICheckButtonTemplate`, `UISliderTemplateWithLabels`), verified against several currently-maintained addons' actual field usage rather than guessed. Falls back to the previous templates if a modern one fails to resolve on a given client, so a bad guess degrades instead of breaking the panel.
 - Trimmed the README's Notes section (a duplicate, less-complete copy of this changelog) down to a link here.
 
-
+## [1.3.0] - 2026-08-06
 
 Structural work. No intended change in user-facing behaviour, except the circle's
 per-tick rendering path (#10), which changes how the circle is drawn but not what it
