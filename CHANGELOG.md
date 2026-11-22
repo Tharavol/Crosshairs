@@ -2,7 +2,7 @@
 
 All notable changes to the Crosshairs addon are documented in this file.
 
-## [1.7.0]
+## [1.7.0] - 2026-11-21
 
 ### Added
 - Loads on World of Warcraft: Forever as well as retail: the TOC now lists Interface 16001. Forever has no global cooldown spell, so there the cursor circle fills for casts only ([#62](https://github.com/Tharavol/Crosshairs/issues/62)).
@@ -12,11 +12,11 @@ All notable changes to the Crosshairs addon are documented in this file.
 - Trimmed comments that recounted past bugs, and dropped the `X-ReleaseNotes` TOC line, which README already covers ([#60](https://github.com/Tharavol/Crosshairs/issues/60))
 - `scripts/validate-toc.lua` accepts a comma-separated Interface list. The daily TOC Interface check now tracks both the retail and WoW Forever versions, so its bump no longer rewrites the Interface line to retail only ([#63](https://github.com/Tharavol/Crosshairs/issues/63)).
 
-## [1.6.1]
+## [1.6.1] - 2026-08-11
 
 - Added an icon (`Ability_Hisek_Aim`) for the AddOns list and AddonCompartment button
 
-## [1.6.0]
+## [1.6.0] - 2026-08-11
 
 Adopts the cross-addon slash command standard (#57).
 
@@ -26,13 +26,13 @@ Adopts the cross-addon slash command standard (#57).
 - An unrecognised command now says which word wasn't understood before printing usage
 - Only the command word is lowercased for matching; sub-tokens are lowercased individually where compared, not the whole input up front
 
-## [1.5.2]
+## [1.5.2] - 2026-08-11
 
 - Bump TOC Interface to 120100 for WoW 12.1.0
 - Exclude CHANGELOG.md from the packaged zip
 - Add X-ReleaseNotes with the addon summary and repository link
 
-## [1.5.1]
+## [1.5.1] - 2026-08-07
 
 Bugfix release.
 
@@ -44,7 +44,7 @@ Bugfix release.
   types fall back to minimal hand-drawn visuals rather than losing the rest of the panel
   when nothing resolves.
 
-## [1.5.0]
+## [1.5.0] - 2026-08-06
 
 Polish. No known bugs and no queued features going in -- a rough-edge sweep over
 what v1.4.0 shipped rather than new scope.
@@ -61,7 +61,7 @@ what v1.4.0 shipped rather than new scope.
   documented the `true|false` alias in the command's usage text, since it was accepted but
   never advertised.
 
-## [1.4.0]
+## [1.4.0] - 2026-08-06
 
 Appearance and docs. The one group of changes since 1.2.4 that changes what existing
 users actually see.
@@ -84,7 +84,7 @@ looks like.
 - Added a stub-API test harness (`tests/`), run in CI, that loads the addon against a stubbed WoW API and checks version-string formatting, `ADDON_LOADED` defaults, combat-visibility combinations, clamped hostile input, and the segment re-anchoring behaviour above.
 - Removed load-time `pcall` calls in `Cross.lua`/`Circle.lua` that claimed to apply saved settings before `PLAYER_LOGIN` but, since SavedVariables aren't populated until `ADDON_LOADED`, only ever applied defaults. Defaults are now filled in exactly once, at `ADDON_LOADED`.
 
-## [1.2.4]
+## [1.2.4] - 2026-08-06
 
 Correctness fixes. No restructuring and no intended change to how anything looks.
 
@@ -97,7 +97,7 @@ Correctness fixes. No restructuring and no intended change to how anything looks
 - Removed `CF_API_KEY` from the release workflow. It required an `## X-Curse-Project-ID` that was never added, so the path it documented could not work.
 - Added a CI check that validates the TOC: every listed file exists with matching case, `## Interface` is a well-formed 5- or 6-digit number, `## Version` is present, and the TOC basename matches `package-as` in `.pkgmeta`.
 
-## [1.2.3]
+## [1.2.3] - 2026-08-03
 
 Packaging and tooling only — no functional changes.
 
@@ -106,7 +106,7 @@ Packaging and tooling only — no functional changes.
 - The version in the TOC now comes from the release tag instead of being maintained by hand, so it can no longer disagree with the release it was published under. Versions now carry a leading `v`.
 - Added a GitHub Actions workflow running luacheck on every push and pull request.
 
-## [1.2.2]
+## [1.2.2] - 2026-07-26
 - Split the addon into `Core.lua`, `Cross.lua`, `Circle.lua`, `Options.lua`, and `Slash.lua` (previously one 700+ line file), sharing state through an addon-namespace table instead of file-scope locals.
 - Removed the dev-only `/crosshairs test`, `diag`, and `circletest` commands and their scaffolding (test frames, forced-visibility hacks) — they were left over from building the circle renderer and had no use for end users.
 - Removed per-tick debug spam (cursor position and quadrant-sample prints firing ~33 times/second) that made debug mode unusable; debug mode now logs only on actual setting changes.
@@ -115,11 +115,11 @@ Packaging and tooling only — no functional changes.
 - Named the magic spell ID used for GCD tracking (`GCD_SPELL_ID = 61304`) with an explanatory comment.
 - Added SPDX license headers to all source files.
 
-## [1.2.1]
+## [1.2.1] - 2026-07-26
 - Licensed under GPLv3 (see LICENSE).
 - The addon now prints its version at login and shows it in the top-right corner of the options panel.
 
-## [1.2.0]
+## [1.2.0] - 2026-07-20
 **Feature summary:** a full graphical options panel, reachable the same way as other addons (e.g. AutoMailer), so settings no longer require slash commands.
 - Added an options panel under Game Menu (Esc) > Options > AddOns > Crosshairs:
   - Checkboxes for cross/circle visibility in and out of combat, and debug mode.
